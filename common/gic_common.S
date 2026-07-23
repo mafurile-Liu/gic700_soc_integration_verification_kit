@@ -1,0 +1,105 @@
+// gic_common.S - shared GIC-700 helper subroutines.
+// Build: aarch64-none-elf-gcc -c gic_common.S -Icommon
+#include "gic_common.h"
+    .section .text, "ax", %progbits
+
+    .global gic_dist_enable_grp1ns
+gic_dist_enable_grp1ns:
+    LOAD_GICD(x0)
+    ldr  w1, [x0, #GICD_CTLR]
+    orr  w1, w1, #GICD_CTLR_EnableGrp1NS
+    str  w1, [x0, #GICD_CTLR]
+1:  ldr  w1, [x0, #GICD_CTLR]
+    tbnz w1, #31, 1b
+    ret
+
+    .global gic_dist_enable_grp1s
+gic_dist_enable_grp1s:
+    LOAD_GICD(x0)
+    ldr  w1, [x0, #GICD_CTLR]
+    orr  w1, w1, #GICD_CTLR_EnableGrp1S
+    str  w1, [x0, #GICD_CTLR]
+1:  ldr  w1, [x0, #GICD_CTLR]
+    tbnz w1, #31, 1b
+    ret
+
+    .global gic_dist_enable_grp0
+gic_dist_enable_grp0:
+    LOAD_GICD(x0)
+    ldr  w1, [x0, #GICD_CTLR]
+    orr  w1, w1, #GICD_CTLR_EnableGrp0
+    str  w1, [x0, #GICD_CTLR]
+1:  ldr  w1, [x0, #GICD_CTLR]
+    tbnz w1, #31, 1b
+    ret
+
+    .global gicr_wake
+gicr_wake:
+    LOAD_GICR(x0)
+    ldr  w1, [x0, #GICR_WAKER]
+    bic  w1, w1, #GICR_WAKER_ProcessorSleep
+    str  w1, [x0, #GICR_WAKER]
+1:  ldr  w1, [x0, #GICR_WAKER]
+    tbnz w1, #2, 1b
+    ret
+
+    .global gic_wait_rwp_gicr
+gic_wait_rwp_gicr:
+    LOAD_GICR(x0)
+1:  ldr  w1, [x0, #GICR_CTLR]
+    tbnz w1, #3, 1b
+    ret
+
+    .global cpu_if_init_grp1
+cpu_if_init_grp1:
+    mrs  x0, ICC_SRE_EL1
+    orr  x0, x0, #1
+    msr  ICC_SRE_EL1, x0
+    mov  x0, #0xFF
+    msr  ICC_PMR_EL1, x0
+    mov  x0, #1
+    msr  ICC_IGRPEN1_EL1, x0
+    isb
+    ret
+
+    .global cpu_if_init_grp0
+cpu_if_init_grp0:
+    mrs  x0, ICC_SRE_EL1
+    orr  x0, x0, #1
+    msr  ICC_SRE_EL1, x0
+    mov  x0, #0xFF
+    msr  ICC_PMR_EL1, x0
+    mov  x0, #1
+    msr  ICC_IGRPEN0_EL1, x0
+    isb
+    ret
+
+    .global wfi_wait_irq
+wfi_wait_irq:
+    dsb  sy
+    msr  daifclr, #2
+1:  wfi
+    b    1b
+
+    .global wfi_wait_fiq
+wfi_wait_fiq:
+    dsb  sy
+    msr  daifclr, #1
+1:  wfi
+    b    1b
+
+    .global report_pass
+report_pass:
+    adr  x1, gic_pass_msg
+    bl   end_test
+1:  b    1b
+
+    .global report_fail
+report_fail:
+    adr  x1, gic_fail_msg
+    bl   end_test
+1:  b    1b
+
+    .section .rodata
+gic_pass_msg: .asciz "** GIC TEST PASSED OK **\n"
+gic_fail_msg: .asciz "** GIC TEST FAILED **\n"
