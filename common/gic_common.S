@@ -17,6 +17,14 @@
  ******************************************************************************/
 
 /* gic_init_grp1ns(): GICD EnableGrp1NS(+RWP), GICR wake, CPU IF for Group1 */
+/*----------------------------------------------------------
+ * gic_init_grp1ns(void)
+ *   Full bring-up for Non-secure Group 1 (IRQ). Three steps:
+ *   1) GICD_CTLR bit[1]=EnableGrp1NS, poll bit[31]=RWP until 0.
+ *   2) GICR_WAKER bit[1]=ProcessorSleep->0 (wake), poll bit[2]=ChildrenAsleep=0.
+ *   3) CPU IF: ICC_SRE_EL1 bit[0]=1, ICC_PMR_EL1=0xFF (allow all), ICC_IGRPEN1_EL1 bit[0]=1.
+ *   (ARE fixed=1 in GIC-700.)
+ *----------------------------------------------------------*/
         .global gic_init_grp1ns
 gic_init_grp1ns:
         ldr     x0,=GICD_BASE
@@ -42,6 +50,11 @@ gic_init_grp1ns:
         ret
 
 /* gic_init_grp0(): GICD EnableGrp0(+RWP), GICR wake, CPU IF for Group0 (FIQ) */
+/*----------------------------------------------------------
+ * gic_init_grp0(void)
+ *   Full bring-up for Group 0 (FIQ). Same as grp1ns but:
+ *   GICD_CTLR bit[0]=EnableGrp0; CPU IF ICC_IGRPEN0_EL1 bit[0]=1 (Group 0 signaling).
+ *----------------------------------------------------------*/
         .global gic_init_grp0
 gic_init_grp0:
         ldr     x0,=GICD_BASE
@@ -71,6 +84,11 @@ gic_init_grp0:
  *   bit = 1 << intid
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * ppi_set_group_ns(x0=intid)
+ *   Assign PPI/SGI (intid 0..31) to Non-secure Group 1.
+ *   bit = 1<<intid. GICR_IGROUPR0: set bit (=Group1); GICR_IGRPMODR0: clear bit (=NS Grp1).
+ *----------------------------------------------------------*/
         .global ppi_set_group_ns
 ppi_set_group_ns:
         mov     w4,#1
@@ -84,6 +102,10 @@ ppi_set_group_ns:
         str     w1,[x5,#GICR_IGRPMODR0]
         ret
 
+/*----------------------------------------------------------
+ * ppi_set_group0(x0=intid)
+ *   Assign to Group 0 (->FIQ). GICR_IGROUPR0: clear bit; GICR_IGRPMODR0: clear bit.
+ *----------------------------------------------------------*/
         .global ppi_set_group0
 ppi_set_group0:
         mov     w4,#1
@@ -97,6 +119,10 @@ ppi_set_group0:
         str     w1,[x5,#GICR_IGRPMODR0]
         ret
 
+/*----------------------------------------------------------
+ * ppi_set_prio(x0=intid, x1=prio)
+ *   Set 8-bit priority byte. GICR_IPRIORITYRn + intid byte = prio (0x00 highest, 0xFF lowest).
+ *----------------------------------------------------------*/
         .global ppi_set_prio
 ppi_set_prio:
         ldr     x5,=GICR_SGI_BASE
@@ -104,6 +130,10 @@ ppi_set_prio:
         strb    w1,[x5,x0]
         ret
 
+/*----------------------------------------------------------
+ * ppi_set_level(x0=intid)
+ *   Level-sensitive trigger. shift=2*(intid-16). GICR_ICFGR1: clear 2-bit field (0b00=level).
+ *----------------------------------------------------------*/
         .global ppi_set_level
 ppi_set_level:
         lsl     w6,w0,#1
@@ -116,6 +146,10 @@ ppi_set_level:
         str     w1,[x5,#GICR_ICFGR1]
         ret
 
+/*----------------------------------------------------------
+ * ppi_set_edge(x0=intid)
+ *   Edge-triggered. shift=2*(intid-16). GICR_ICFGR1: set 2-bit field to 0b10 (edge).
+ *----------------------------------------------------------*/
         .global ppi_set_edge
 ppi_set_edge:
         lsl     w6,w0,#1
@@ -131,6 +165,10 @@ ppi_set_edge:
         str     w1,[x5,#GICR_ICFGR1]
         ret
 
+/*----------------------------------------------------------
+ * ppi_enable(x0=intid)
+ *   Enable. bit=1<<intid. GICR_ISENABLER0: set bit.
+ *----------------------------------------------------------*/
         .global ppi_enable
 ppi_enable:
         mov     w4,#1
@@ -139,6 +177,10 @@ ppi_enable:
         str     w4,[x5,#GICR_ISENABLER0]
         ret
 
+/*----------------------------------------------------------
+ * ppi_set_pend(x0=intid)
+ *   Force pending (verification injection, no peripheral needed). GICR_ISPENDR0: set bit.
+ *----------------------------------------------------------*/
         .global ppi_set_pend
 ppi_set_pend:
         mov     w4,#1
@@ -147,6 +189,10 @@ ppi_set_pend:
         str     w4,[x5,#GICR_ISPENDR0]
         ret
 
+/*----------------------------------------------------------
+ * ppi_clr_pend(x0=intid)
+ *   Clear pending. GICR_ICPENDR0: set bit.
+ *----------------------------------------------------------*/
         .global ppi_clr_pend
 ppi_clr_pend:
         mov     w4,#1
@@ -155,6 +201,10 @@ ppi_clr_pend:
         str     w4,[x5,#GICR_ICPENDR0]
         ret
 
+/*----------------------------------------------------------
+ * ppi_config_ns(x0=intid)
+ *   One-call config: ppi_set_group_ns + prio 0x80 + level + enable. Saves x19/x30.
+ *----------------------------------------------------------*/
         .global ppi_config_ns
 ppi_config_ns:
         stp     x19,x30,[sp,#-16]!
@@ -170,6 +220,10 @@ ppi_config_ns:
         ldp     x19,x30,[sp],#16
         ret
 
+/*----------------------------------------------------------
+ * ppi_config_grp0(x0=intid)
+ *   One-call: ppi_set_group0 + prio 0x80 + level + enable.
+ *----------------------------------------------------------*/
         .global ppi_config_grp0
 ppi_config_grp0:
         stp     x19,x30,[sp,#-16]!
@@ -189,6 +243,11 @@ ppi_config_grp0:
  * SPI config  (x0=intid >=32, GICD). bank=intid/32, bit=1<<(intid%32)
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * spi_set_group_ns(x0=intid >=32)
+ *   Assign SPI to NS Group 1. bank=intid/32 (udiv), bit=1<<(intid%32) (msub).
+ *   GICD_IGROUPRn+bank*4: set bit; GICD_IGRPMODRn+bank*4: clear bit.
+ *----------------------------------------------------------*/
         .global spi_set_group_ns
 spi_set_group_ns:
         mov     w1,#32
@@ -209,6 +268,10 @@ spi_set_group_ns:
         str     w1,[x5,x6]
         ret
 
+/*----------------------------------------------------------
+ * spi_set_group0(x0=intid)
+ *   Group 0. GICD_IGROUPRn: clear bit; GICD_IGRPMODRn: clear bit.
+ *----------------------------------------------------------*/
         .global spi_set_group0
 spi_set_group0:
         mov     w1,#32
@@ -229,6 +292,10 @@ spi_set_group0:
         str     w1,[x5,x6]
         ret
 
+/*----------------------------------------------------------
+ * spi_set_prio(x0=intid, x1=prio)
+ *   GICD_IPRIORITYRn + intid byte = prio.
+ *----------------------------------------------------------*/
         .global spi_set_prio
 spi_set_prio:
         ldr     x5,=GICD_BASE
@@ -236,6 +303,10 @@ spi_set_prio:
         strb    w1,[x5,x0]
         ret
 
+/*----------------------------------------------------------
+ * spi_set_level(x0=intid)
+ *   Level. idx=intid/16, shift=2*(intid%16). GICD_ICFGRn+idx*4: clear 2-bit field.
+ *----------------------------------------------------------*/
         .global spi_set_level
 spi_set_level:
         mov     w1,#16
@@ -252,6 +323,10 @@ spi_set_level:
         str     w1,[x5,x8]
         ret
 
+/*----------------------------------------------------------
+ * spi_set_edge(x0=intid)
+ *   Edge. GICD_ICFGRn: set 2-bit field to 0b10.
+ *----------------------------------------------------------*/
         .global spi_set_edge
 spi_set_edge:
         mov     w1,#16
@@ -271,6 +346,10 @@ spi_set_edge:
         str     w1,[x5,x8]
         ret
 
+/*----------------------------------------------------------
+ * spi_enable(x0=intid)
+ *   GICD_ISENABLERn+bank*4: set bit.
+ *----------------------------------------------------------*/
         .global spi_enable
 spi_enable:
         mov     w1,#32
@@ -284,6 +363,11 @@ spi_enable:
         str     w4,[x5,x6]
         ret
 
+/*----------------------------------------------------------
+ * spi_route_self(x0=intid)
+ *   Route SPI to THIS PE. GICD_IROUTERn+intid*8 = MPIDR affinity (Aff0/1/2[23:0] +
+ *   Aff3[39:32] via bfi), IRM[31]=0 (specific PE).
+ *----------------------------------------------------------*/
         .global spi_route_self
 spi_route_self:
         mrs     x2,mpidr_el1
@@ -296,6 +380,10 @@ spi_route_self:
         str     x3,[x5,x6]
         ret
 
+/*----------------------------------------------------------
+ * spi_set_pend(x0=intid)
+ *   Force pending (inject). GICD_ISPENDRn+bank*4: set bit.
+ *----------------------------------------------------------*/
         .global spi_set_pend
 spi_set_pend:
         mov     w1,#32
@@ -309,6 +397,10 @@ spi_set_pend:
         str     w4,[x5,x6]
         ret
 
+/*----------------------------------------------------------
+ * spi_config_ns(x0=intid)
+ *   One-call: group NS + prio 0x80 + level + route_self + enable.
+ *----------------------------------------------------------*/
         .global spi_config_ns
 spi_config_ns:
         stp     x19,x30,[sp,#-16]!
@@ -326,6 +418,10 @@ spi_config_ns:
         ldp     x19,x30,[sp],#16
         ret
 
+/*----------------------------------------------------------
+ * spi_config_grp0(x0=intid)
+ *   One-call: group0 + prio 0x80 + level + route_self + enable.
+ *----------------------------------------------------------*/
         .global spi_config_grp0
 spi_config_grp0:
         stp     x19,x30,[sp,#-16]!
@@ -347,32 +443,56 @@ spi_config_grp0:
  * Ack / EOI / Wait
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * gic_ack_grp1(void) -> x0=INTID
+ *   Read ICC_IAR1_EL1: returns taken INTID, advances state pending->active.
+ *----------------------------------------------------------*/
         .global gic_ack_grp1
 gic_ack_grp1:
         mrs     x0,ICC_IAR1_EL1
         ret
 
+/*----------------------------------------------------------
+ * gic_ack_grp0(void) -> x0=INTID
+ *   Read ICC_IAR0_EL1 (Group 0 / FIQ).
+ *----------------------------------------------------------*/
         .global gic_ack_grp0
 gic_ack_grp0:
         mrs     x0,ICC_IAR0_EL1
         ret
 
+/*----------------------------------------------------------
+ * gic_eoi_grp1(x0=intid)
+ *   Write ICC_EOIR1_EL1: priority drop + deactivate (EOImode=0).
+ *----------------------------------------------------------*/
         .global gic_eoi_grp1
 gic_eoi_grp1:
         msr     ICC_EOIR1_EL1,x0
         ret
 
+/*----------------------------------------------------------
+ * gic_eoi_grp0(x0=intid)
+ *   Write ICC_EOIR0_EL1 (Group 0).
+ *----------------------------------------------------------*/
         .global gic_eoi_grp0
 gic_eoi_grp0:
         msr     ICC_EOIR0_EL1,x0
         ret
 
+/*----------------------------------------------------------
+ * gic_wait_irq_clear(void)
+ *   Poll ISR_EL1 bit[7] (IRQ) until 0 (IRQ de-asserted). For level interrupts.
+ *----------------------------------------------------------*/
         .global gic_wait_irq_clear
 gic_wait_irq_clear:
 1:      mrs     x0,isr_el1
         tbnz    x0,#7,1b
         ret
 
+/*----------------------------------------------------------
+ * gic_wait_fiq_clear(void)
+ *   Poll ISR_EL1 bit[6] (FIQ) until 0.
+ *----------------------------------------------------------*/
         .global gic_wait_fiq_clear
 gic_wait_fiq_clear:
 1:      mrs     x0,isr_el1
@@ -384,6 +504,12 @@ gic_wait_fiq_clear:
  * Test sets gic_expected_intid before WFI, then: irq_handler: b gic_irq_handler_grp1
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * gic_irq_handler_grp1(void)
+ *   Default IRQ handler: ack(IAR1) -> eoi(EOIR1) -> compare to gic_expected_intid
+ *   -> if mismatch test_fail; else wait_irq_clear -> test_pass. Test uses:
+ *     irq_handler: b gic_irq_handler_grp1
+ *----------------------------------------------------------*/
         .global gic_irq_handler_grp1
 gic_irq_handler_grp1:
         mrs     x0,ICC_IAR1_EL1
@@ -395,6 +521,10 @@ gic_irq_handler_grp1:
         bl      gic_wait_irq_clear
         b       test_pass
 
+/*----------------------------------------------------------
+ * gic_irq_handler_grp0(void)
+ *   Default FIQ handler: IAR0/EOIR0, compare expected, wait_fiq_clear, pass/fail.
+ *----------------------------------------------------------*/
         .global gic_irq_handler_grp0
 gic_irq_handler_grp0:
         mrs     x0,ICC_IAR0_EL1
@@ -410,12 +540,20 @@ gic_irq_handler_grp0:
  * Result: x0=0 pass / x0=1 fail, then WFE spin (simulator reads x0)
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * test_pass(void)
+ *   Result PASS: x0=0, then WFE spin (simulator reads x0=0).
+ *----------------------------------------------------------*/
         .global test_pass
 test_pass:
         mov     x0,#0
 1:      wfe
         b       1b
 
+/*----------------------------------------------------------
+ * test_fail(void)
+ *   Result FAIL: x0=1, then WFE spin.
+ *----------------------------------------------------------*/
         .global test_fail
 test_fail:
         mov     x0,#1
@@ -436,6 +574,11 @@ gic_expected_intid:
  * Group 1 (Secure) variants
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * gic_init_grp1s(void)
+ *   Full bring-up for Secure Group 1. GICD_CTLR bit[2]=EnableGrp1S; CPU IF
+ *   ICC_IGRPEN1_EL1. Must run at a Secure EL.
+ *----------------------------------------------------------*/
         .global gic_init_grp1s
 gic_init_grp1s:
         ldr     x0,=GICD_BASE
@@ -460,6 +603,10 @@ gic_init_grp1s:
         isb
         ret
 
+/*----------------------------------------------------------
+ * ppi_set_group_1s(x0=intid)
+ *   Assign to Secure Group 1. GICR_IGROUPR0: set bit; GICR_IGRPMODR0: set bit (=Sec Grp1).
+ *----------------------------------------------------------*/
         .global ppi_set_group_1s
 ppi_set_group_1s:
         mov     w4,#1
@@ -473,6 +620,10 @@ ppi_set_group_1s:
         str     w1,[x5,#GICR_IGRPMODR0]
         ret
 
+/*----------------------------------------------------------
+ * spi_set_group_1s(x0=intid)
+ *   Secure Group 1. GICD_IGROUPRn: set bit; GICD_IGRPMODRn: set bit.
+ *----------------------------------------------------------*/
         .global spi_set_group_1s
 spi_set_group_1s:
         mov     w1,#32
@@ -493,6 +644,10 @@ spi_set_group_1s:
         str     w1,[x5,x6]
         ret
 
+/*----------------------------------------------------------
+ * ppi_config_1s(x0=intid)
+ *   One-call: ppi_set_group_1s + prio 0x80 + level + enable.
+ *----------------------------------------------------------*/
         .global ppi_config_1s
 ppi_config_1s:
         stp     x19,x30,[sp,#-16]!
@@ -508,6 +663,10 @@ ppi_config_1s:
         ldp     x19,x30,[sp],#16
         ret
 
+/*----------------------------------------------------------
+ * spi_config_1s(x0=intid)
+ *   One-call: group 1s + prio 0x80 + level + route_self + enable.
+ *----------------------------------------------------------*/
         .global spi_config_1s
 spi_config_1s:
         stp     x19,x30,[sp,#-16]!
@@ -529,6 +688,10 @@ spi_config_1s:
  * Low-level building blocks (compatibility / custom tests)
  ******************************************************************************/
 
+/*----------------------------------------------------------
+ * gic_dist_enable_grp1ns(void) [low-level]
+ *   GICD_CTLR bit[1]=EnableGrp1NS + poll RWP. (gic_init_grp1ns includes this.)
+ *----------------------------------------------------------*/
         .global gic_dist_enable_grp1ns
 gic_dist_enable_grp1ns:
         ldr     x0,=GICD_BASE
@@ -539,6 +702,10 @@ gic_dist_enable_grp1ns:
         tbnz    w1,#31,1b
         ret
 
+/*----------------------------------------------------------
+ * gic_dist_enable_grp1s(void) [low-level]
+ *   GICD_CTLR bit[2]=EnableGrp1S + poll RWP.
+ *----------------------------------------------------------*/
         .global gic_dist_enable_grp1s
 gic_dist_enable_grp1s:
         ldr     x0,=GICD_BASE
@@ -549,6 +716,10 @@ gic_dist_enable_grp1s:
         tbnz    w1,#31,1b
         ret
 
+/*----------------------------------------------------------
+ * gic_dist_enable_grp0(void) [low-level]
+ *   GICD_CTLR bit[0]=EnableGrp0 + poll RWP.
+ *----------------------------------------------------------*/
         .global gic_dist_enable_grp0
 gic_dist_enable_grp0:
         ldr     x0,=GICD_BASE
@@ -559,6 +730,10 @@ gic_dist_enable_grp0:
         tbnz    w1,#31,1b
         ret
 
+/*----------------------------------------------------------
+ * gicr_wake(void) [low-level]
+ *   GICR_WAKER ProcessorSleep=0, poll ChildrenAsleep=0.
+ *----------------------------------------------------------*/
         .global gicr_wake
 gicr_wake:
         ldr     x0,=GICR_RD_BASE
@@ -569,6 +744,10 @@ gicr_wake:
         tbnz    w1,#2,1b
         ret
 
+/*----------------------------------------------------------
+ * gic_wait_rwp_gicr(void) [low-level]
+ *   Poll GICR_CTLR bit[3]=RWP until 0 (Redistributor write complete).
+ *----------------------------------------------------------*/
         .global gic_wait_rwp_gicr
 gic_wait_rwp_gicr:
         ldr     x0,=GICR_RD_BASE
@@ -576,6 +755,10 @@ gic_wait_rwp_gicr:
         tbnz    w1,#3,1b
         ret
 
+/*----------------------------------------------------------
+ * cpu_if_init_grp1(void) [low-level]
+ *   ICC_SRE=1, ICC_PMR=0xFF, ICC_IGRPEN1=1.
+ *----------------------------------------------------------*/
         .global cpu_if_init_grp1
 cpu_if_init_grp1:
         mrs     x0,ICC_SRE_EL1
@@ -588,6 +771,10 @@ cpu_if_init_grp1:
         isb
         ret
 
+/*----------------------------------------------------------
+ * cpu_if_init_grp0(void) [low-level]
+ *   ICC_SRE=1, ICC_PMR=0xFF, ICC_IGRPEN0=1.
+ *----------------------------------------------------------*/
         .global cpu_if_init_grp0
 cpu_if_init_grp0:
         mrs     x0,ICC_SRE_EL1
@@ -600,6 +787,10 @@ cpu_if_init_grp0:
         isb
         ret
 
+/*----------------------------------------------------------
+ * wfi_wait_irq(void) [low-level]
+ *   dsb sy; daifclr #2 (unmask IRQ); wfi loop.
+ *----------------------------------------------------------*/
         .global wfi_wait_irq
 wfi_wait_irq:
         dsb     sy
@@ -607,6 +798,10 @@ wfi_wait_irq:
 1:      wfi
         b       1b
 
+/*----------------------------------------------------------
+ * wfi_wait_fiq(void) [low-level]
+ *   dsb sy; daifclr #1 (unmask FIQ); wfi loop.
+ *----------------------------------------------------------*/
         .global wfi_wait_fiq
 wfi_wait_fiq:
         dsb     sy
@@ -614,12 +809,20 @@ wfi_wait_fiq:
 1:      wfi
         b       1b
 
+/*----------------------------------------------------------
+ * report_pass(void) [compat]
+ *   Legacy: ldr gic_pass_msg; bl end_test. (Prefer test_pass for 样板 framework.)
+ *----------------------------------------------------------*/
         .global report_pass
 report_pass:
         ldr     x1,=gic_pass_msg
         bl      end_test
 1:      b       1b
 
+/*----------------------------------------------------------
+ * report_fail(void) [compat]
+ *   Legacy: ldr gic_fail_msg; bl end_test.
+ *----------------------------------------------------------*/
         .global report_fail
 report_fail:
         ldr     x1,=gic_fail_msg
