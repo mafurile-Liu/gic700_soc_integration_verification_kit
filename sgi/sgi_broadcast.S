@@ -12,10 +12,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1ns
+        bl      gic_check_ns
+        cbz     x0,test_fail
         mov     x0,#SGI_INTID
         bl      ppi_set_group_ns
         mov     x0,#SGI_INTID
@@ -32,5 +34,5 @@ test_start:
         dsb     sy
         b       test_pass
 
-irq_handler:
+curr_el_spx_irq_vector:
         b       gic_irq_handler_grp1

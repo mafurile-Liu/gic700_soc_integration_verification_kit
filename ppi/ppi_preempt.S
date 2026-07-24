@@ -12,10 +12,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1ns
+        bl      gic_check_ns
+        cbz     x0,test_fail
         msr     ICC_BPR1_EL1,xzr
         /* config LO: group NS, prio 0x80, level, enable */
         mov     x0,#LO_ID
@@ -54,7 +56,7 @@ wait_loop:
         wfi
         b       wait_loop
 
-irq_handler:
+curr_el_spx_irq_vector:
         bl      gic_ack_grp1
         mov     x9,x0
         cmp     x9,#HI_ID

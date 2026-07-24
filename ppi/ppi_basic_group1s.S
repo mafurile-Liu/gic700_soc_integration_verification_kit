@@ -10,10 +10,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1s
+        bl      gic_check_secure
+        cbz     x0,test_fail
         ldr     x1,=gic_expected_intid
         mov     x2,#PPI_INTID
         str     x2,[x1]
@@ -30,5 +32,5 @@ wait_loop:
         wfi
         b       wait_loop
 
-irq_handler:
+curr_el_spx_irq_vector:
         b       gic_irq_handler_grp1

@@ -14,10 +14,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1ns
+        bl      gic_check_ns
+        cbz     x0,test_fail
         mov     x20, #SCAN_START
 scan_loop:
         ldr     x1,=gic_expected_intid
@@ -37,7 +39,7 @@ scan_loop:
         b.le    scan_loop
         bl      test_pass
 
-irq_handler:
+curr_el_spx_irq_vector:
         bl      gic_ack_grp1
         mov     x9, x0
         bl      gic_eoi_grp1

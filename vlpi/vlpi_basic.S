@@ -10,10 +10,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1ns
+        bl      gic_check_ns
+        cbz     x0,test_fail
         /* TODO(GICv4): vPE map (VMAPP), vLPI injection, guest ack via ICH_LR */
         ldr     x1,=gic_expected_intid
         mov     x2,#VLPI_INTID
@@ -26,5 +28,5 @@ wait_loop:
         wfi
         b       wait_loop
 
-irq_handler:
+curr_el_spx_irq_vector:
         b       gic_irq_handler_grp1

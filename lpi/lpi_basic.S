@@ -17,10 +17,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1ns
+        bl      gic_check_ns
+        cbz     x0,test_fail
         /* GICR: LPI Property/Pending tables + EnableLPIs (TRM 4.13.1) */
         ldr     x0,=GICR_RD_BASE
         ldr     x1,=lpi_prop_base
@@ -62,7 +64,7 @@ wait_loop:
         wfi
         b       wait_loop
 
-irq_handler:
+curr_el_spx_irq_vector:
         b       gic_irq_handler_grp1
 
 its_issue_commands:

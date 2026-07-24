@@ -10,10 +10,12 @@
         .section .text
         .align 4
         .global test_start
-        .global irq_handler
+        .global curr_el_spx_irq_vector
 
 test_start:
         bl      gic_init_grp1ns
+        bl      gic_check_ns
+        cbz     x0,test_fail
         /* TODO(GICv4): map vPE (VMAPP), then inject vSGI via GITS_SGIR */
         ldr     x0,=GITS_BASE
         mov     x1,#VSGI_INTID
@@ -29,5 +31,5 @@ wait_loop:
         wfi
         b       wait_loop
 
-irq_handler:
+curr_el_spx_irq_vector:
         b       gic_irq_handler_grp1
