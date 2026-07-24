@@ -15,19 +15,32 @@ test_start:
     bl   gic_dist_enable_grp0
     bl   gicr_wake
     bl   cpu_if_init_grp0
-    LOAD_GICR(x0); add x5, x0, #0x10000
-    ldr  w1,[x5,#GICR_IGROUPR0]; bic w1,w1,#SGI_BIT; str w1,[x5,#GICR_IGROUPR0]
-    ldr  w1,[x5,#GICR_IGRPMODR0]; bic w1,w1,#SGI_BIT; str w1,[x5,#GICR_IGRPMODR0]
-    mov  w1,#PRIO_DEFAULT; strb w1,[x5,#(GICR_IPRIORITYRn+SGI_INTID)]
-    mov  w1,#SGI_BIT; str w1,[x5,#GICR_ISENABLER0]
-    mov  w1,#SGI_BIT; str w1,[x5,#GICR_ISPENDR0]   // inject: set SGI pending
+    LOAD_GICR(x0)
+    add x5, x0, #0x10000
+    ldr  w1,[x5,#GICR_IGROUPR0]
+    bic w1,w1,#SGI_BIT
+    str w1,[x5,#GICR_IGROUPR0]
+    ldr  w1,[x5,#GICR_IGRPMODR0]
+    bic w1,w1,#SGI_BIT
+    str w1,[x5,#GICR_IGRPMODR0]
+    mov  w1,#PRIO_DEFAULT
+    strb w1,[x5,#(GICR_IPRIORITYRn+SGI_INTID)]
+    mov  w1,#SGI_BIT
+    str w1,[x5,#GICR_ISENABLER0]
+    mov  w1,#SGI_BIT
+    str w1,[x5,#GICR_ISPENDR0]  // inject: set SGI pending
     bl   wfi_wait_fiq
     .global curr_el_spx_fiq_vector
 curr_el_spx_fiq_vector:
-    ldr  x0,=core_sync1; bl core_synchronisation
-    mrs  x3, ICC_IAR0_EL1; msr ICC_EOIR0_EL1, x3
-    mov  w2,#SGI_INTID; cmp w3,w2; b.ne sgi_fail
-1:  mrs  x21,isr_el1; tbnz x21,#6,1b
+    ldr  x0,=core_sync1
+    bl core_synchronisation
+    mrs  x3, ICC_IAR0_EL1
+    msr ICC_EOIR0_EL1, x3
+    mov  w2,#SGI_INTID
+    cmp w3,w2
+    b.ne sgi_fail
+1:  mrs  x21,isr_el1
+tbnz x21,#6,1b
     bl   report_pass
 sgi_fail: bl report_fail
 1: b 1b

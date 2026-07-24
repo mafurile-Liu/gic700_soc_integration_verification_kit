@@ -90,13 +90,13 @@ wfi_wait_fiq:
 
     .global report_pass
 report_pass:
-    adr  x1, gic_pass_msg
+    ldr  x1, =gic_pass_msg
     bl   end_test
 1:  b    1b
 
     .global report_fail
 report_fail:
-    adr  x1, gic_fail_msg
+    ldr  x1, =gic_fail_msg
     bl   end_test
 1:  b    1b
 

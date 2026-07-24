@@ -97,7 +97,8 @@ test_start:
 
     // ---- Trigger LPI: write EventID to GITS_TRANSLATER ----
     mov  x0, #EVT_ID
-    str  x0, [x9, #GITS_TRANSLATER]
+    mov  x10, #GITS_TRANSLATER   // 0xC040 too large for imm offset
+    str  x0, [x9, x10]             // GITS_TRANSLATER (EventID -> LPI)
 
     bl   wfi_wait_irq
 

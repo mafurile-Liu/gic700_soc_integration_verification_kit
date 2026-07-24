@@ -46,8 +46,12 @@ curr_el_spx_fiq_vector:
     b.ne spi_fail
 1:  mrs  x21, isr_el1
     tbnz x21, #6, 1b
-    mrs  x0, mpidr_el1; ubfx x0, x0, #0, #16
-    adr  x1, exec_pe_var; ldr w2, [x1]; cmp x0, x2; bne end_wfi
+    mrs  x0, mpidr_el1
+    ubfx x0, x0, #0, #16
+    adr  x1, exec_pe_var
+    ldr w2, [x1]
+    cmp x0, x2
+    bne end_wfi
     bl   report_pass
 spi_fail:
     bl   report_fail
