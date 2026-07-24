@@ -11,52 +11,52 @@
     .section .text, "ax", %progbits
     .global test_start
 test_start:
-    bl   gic_dist_enable_grp1s
-    bl   gicr_wake
-    bl   cpu_if_init_grp1
+    bl gic_dist_enable_grp1s
+    bl gicr_wake
+    bl cpu_if_init_grp1
     LOAD_GICD(x0)
-    ldr  w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
+    ldr w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
     orr w1, w1, #SPI_BIT(SPI_INTID)
-    str  w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
-    ldr  w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_INTID)*4)]
+    str w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
+    ldr w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_INTID)*4)]  //  SPI Group modifier
     orr w1, w1, #SPI_BIT(SPI_INTID)
-    str  w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_INTID)*4)]
-    mov  w1, #PRIO_DEFAULT
+    str w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_INTID)*4)]  //  SPI Group modifier
+    mov w1, #PRIO_DEFAULT
     strb w1, [x0, #SPI_IPRIORITYR_OFF(SPI_INTID)]
-    ldr  w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
-    bic  w1, w1, #(3 << SPI_ICFGR_SHIFT(SPI_INTID))   // level
-    str  w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
+    ldr w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
+    bic w1, w1, #(3 << SPI_ICFGR_SHIFT(SPI_INTID))  // level
+    str w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
     // route to this PE: Aff0|Aff1<<8|Aff2<<16|Aff3<<24 (from MPIDR)
-    mrs  x2, mpidr_el1
-    and  x3, x2, #0xFFFFFF
+    mrs x2, mpidr_el1  //  MPIDR: Aff0[7:0] Aff1[15:8] Aff2[23:16] Aff3[39:32]
+    and x3, x2, #0xFFFFFF
     ubfx x4, x2, #32, #8
-    bfi  x3, x4, #32, #8  // Aff3->[39:32]; IRM[31]=0 (specific PE, IHI0069 p580)
-    str  x3, [x0, #SPI_IROUTER_OFF(SPI_INTID)]
-    mov  w1, #SPI_BIT(SPI_INTID)
-    str  w1, [x0, #SPI_ISENABLER_OFF(SPI_INTID)]
-    bl   wfi_wait_irq
+    bfi x3, x4, #32, #8  // Aff3->[39:32]; IRM[31]=0 (specific PE, IHI0069 p580)
+    str x3, [x0, #SPI_IROUTER_OFF(SPI_INTID)]
+    mov w1, #SPI_BIT(SPI_INTID)
+    str w1, [x0, #SPI_ISENABLER_OFF(SPI_INTID)]
+    bl wfi_wait_irq
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:
-    ldr  x0, =core_sync1
-    bl   core_synchronisation
-    mrs  x3, ICC_IAR1_EL1
-    msr  ICC_EOIR1_EL1, x3
-    mov  w2, #SPI_INTID
-    cmp  w3, w2
+    ldr x0, =core_sync1
+    bl core_synchronisation
+    mrs x3, ICC_IAR1_EL1  //  Ack Group 1: read returns INTID, advances state (pending->active)
+    msr ICC_EOIR1_EL1, x3  //  EOI Group 1: priority drop + deactivate (EOImode=0)
+    mov w2, #SPI_INTID
+    cmp w3, w2
     b.ne spi_fail
 1:  mrs  x21, isr_el1
     tbnz x21, #7, 1b
-    mrs  x0, mpidr_el1
+    mrs x0, mpidr_el1  //  MPIDR: Aff0[7:0] Aff1[15:8] Aff2[23:16] Aff3[39:32]
     ubfx x0, x0, #0, #16
-    adr  x1, exec_pe_var
+    adr x1, exec_pe_var
     ldr w2, [x1]
     cmp x0, x2
     bne end_wfi
-    bl   report_pass
+    bl report_pass
 spi_fail:
-    bl   report_fail
+    bl report_fail
 end_wfi:
-    b    end_wfi
+    b end_wfi
     .balign 8
 core_sync1: .word 0
     .end

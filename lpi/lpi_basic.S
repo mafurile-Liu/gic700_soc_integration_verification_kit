@@ -40,45 +40,45 @@
     .section .text, "ax", %progbits
     .global test_start
 test_start:
-    bl   gic_dist_enable_grp1ns
-    bl   gicr_wake
-    bl   cpu_if_init_grp1
+    bl gic_dist_enable_grp1ns
+    bl gicr_wake
+    bl cpu_if_init_grp1
 
     // ---- GICR: LPI Property/Pending tables + EnableLPIs (TRM 4.13.1) ----
     LOAD_GICR(x0)
     // GICR_PROPBASER = (IDbits<<56) | (PROP_BASE & ~0xFFF) | Shareability+Cache
-    ldr  x1, =LPI_PROP_BASE
-    ldr  x2, =(LPI_IDBITS)
-    bfi  x1, x2, #56, #8           // IDbits[63:56]
+    ldr x1, =LPI_PROP_BASE
+    ldr x2, =(LPI_IDBITS)
+    bfi x1, x2, #56, #8  // IDbits[63:56]
     // (attributes left 0 = Non-shareable/Device; tune to WB per TRM 4.14)
-    str  x1, [x0, #GICR_PROPBASER]
+    str x1, [x0, #GICR_PROPBASER]  //  LPI Property table base + IDbits[63:56] + cache attrs
     // GICR_PENDBASER = (PEND_BASE & ~0xFFFF) | Valid=1
-    ldr  x1, =LPI_PEND_BASE
-    orr  x1, x1, #1                // Valid
-    str  x1, [x0, #GICR_PENDBASER]
+    ldr x1, =LPI_PEND_BASE
+    orr x1, x1, #1  // Valid
+    str x1, [x0, #GICR_PENDBASER]  //  LPI Pending table base + Valid[0]
     // EnableLPIs
-    ldr  w1, [x0, #GICR_CTLR]
-    orr  w1, w1, #GICR_CTLR_EnableLPIs
-    str  w1, [x0, #GICR_CTLR]
-    bl   gic_wait_rwp_gicr
+    ldr w1, [x0, #GICR_CTLR]  //  GICR Control: [0]EnableLPIs [3]RWP
+    orr w1, w1, #GICR_CTLR_EnableLPIs
+    str w1, [x0, #GICR_CTLR]  //  GICR Control: [0]EnableLPIs [3]RWP
+    bl gic_wait_rwp_gicr
 
     // ---- ITS init (TRM 4.12) ----
-    LOAD_GITS(x9)                  // x9 = ITS base for the whole test
+    LOAD_GITS(x9)  // x9 = ITS base for the whole test
     // GITS_BASER0 (Device): Type=1, EntrySize, PA, PageSize. (simplified)
-    ldr  x1, =ITS_DEV_BASE
+    ldr x1, =ITS_DEV_BASE
     // TODO: set Type[58:56]=1, EntrySize[52:48], PA[47:12], PageSize per TRM
-    str  x1, [x9, #GITS_BASER0]
+    str x1, [x9, #GITS_BASER0]  //  ITS Device table base + Type/EntrySize/PageSize
     // GITS_BASER1 (Collection): Type=4
-    ldr  x1, =ITS_COL_BASE
-    str  x1, [x9, #GITS_BASER1]
+    ldr x1, =ITS_COL_BASE
+    str x1, [x9, #GITS_BASER1]  //  ITS Collection table base
     // GITS_CBASER: cmdq base + size
-    ldr  x1, =ITS_CMDQ_BASE
-    str  x1, [x9, #GITS_CBASER]
+    ldr x1, =ITS_CMDQ_BASE
+    str x1, [x9, #GITS_CBASER]  //  ITS command queue base + size
     // CWRITER = 0
-    str  xzr, [x9, #GITS_CWRITER]
+    str xzr, [x9, #GITS_CWRITER]  //  ITS command queue write index
     // GITS_CTLR.Enabled = 1; poll Quiescent==0
-    mov  w1, #GITS_CTLR_Enabled
-    str  w1, [x9, #GITS_CTLR]
+    mov w1, #GITS_CTLR_Enabled
+    str w1, [x9, #GITS_CTLR]  //  ITS Control: [0]Enabled [31]Quiescent
 1:  ldr  w1, [x9, #GITS_CTLR]
     tbnz w1, #31, 1b
 
@@ -98,27 +98,27 @@ test_start:
     // (which DW holds DeviceID/EventID/ITT_addr/INTID/ICID/RDbase/Size/V) is in the
     // IHI0069 ch5 command-format figures - VERIFY byte positions against those
     // figures before running. Command ORDER: MAPD -> MAPC -> MAPI -> INV -> SYNC.
-    bl   its_issue_commands       // TODO: encode the 5 commands per IHI0069 ch5
+    bl its_issue_commands  // TODO: encode the 5 commands per IHI0069 ch5
 
     // ---- Trigger LPI: write EventID to GITS_TRANSLATER ----
-    mov  x0, #EVT_ID
-    mov  x10, #GITS_TRANSLATER   // 0xC040 too large for imm offset
-    str  x0, [x9, x10]             // GITS_TRANSLATER (EventID -> LPI)
+    mov x0, #EVT_ID
+    mov x10, #GITS_TRANSLATER  // 0xC040 too large for imm offset
+    str x0, [x9, x10]  // GITS_TRANSLATER (EventID -> LPI)
 
-    bl   wfi_wait_irq
+    bl wfi_wait_irq
 
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:
-    ldr  x0, =core_sync1
-    bl   core_synchronisation
-    mrs  x3, ICC_IAR1_EL1         // ack; x3 = LPI INTID
-    msr  ICC_EOIR1_EL1, x3        // LPI has no active state -> priority drop only
-    mov  x2, #LPI_INTID
-    cmp  x3, x2
+    ldr x0, =core_sync1
+    bl core_synchronisation
+    mrs x3, ICC_IAR1_EL1  // ack; x3 = LPI INTID
+    msr ICC_EOIR1_EL1, x3  // LPI has no active state -> priority drop only
+    mov x2, #LPI_INTID
+    cmp x3, x2
     b.ne lpi_fail
-    bl   report_pass
+    bl report_pass
 lpi_fail:
-    bl   report_fail
+    bl report_fail
 1:  b    1b
 
 // TODO: encode MAPD/MAPC/MAPI/INV/SYNC into CMDQ and advance CWRITER, poll CREADR.

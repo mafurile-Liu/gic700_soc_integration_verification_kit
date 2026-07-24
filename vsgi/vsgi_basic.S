@@ -14,25 +14,25 @@
     .section .text, "ax", %progbits
     .global test_start
 test_start:
-    bl   gic_dist_enable_grp1ns
-    bl   gicr_wake
-    bl   cpu_if_init_grp1
+    bl gic_dist_enable_grp1ns
+    bl gicr_wake
+    bl cpu_if_init_grp1
     // TODO(GICv4): map the vPE (VMAPP) on this ITS, then inject the vSGI:
     LOAD_GITS(x0)
     // GITS_SGIR = (vPE_id) | (SGI_INTID << ...). VERIFY field layout vs IHI0069.
-    mov  x1, #VSGI_INTID
-    str  x1, [x0, #GITS_SGIR]      // 64-bit WO
-    bl   wfi_wait_irq
+    mov x1, #VSGI_INTID
+    str x1, [x0, #GITS_SGIR]  // 64-bit WO
+    bl wfi_wait_irq
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:
-    ldr  x0, =core_sync1
-    bl   core_synchronisation
-    mrs  x3, ICC_IAR1_EL1
-    msr  ICC_EOIR1_EL1, x3
+    ldr x0, =core_sync1
+    bl core_synchronisation
+    mrs x3, ICC_IAR1_EL1  //  Ack Group 1: read returns INTID, advances state (pending->active)
+    msr ICC_EOIR1_EL1, x3  //  EOI Group 1: priority drop + deactivate (EOImode=0)
     // vSGI INTID is in the 0..15 range; accept any SGI range INTID.
-    cmp  x3, #16
+    cmp x3, #16
     b.hs vsgi_fail
-    bl   report_pass
+    bl report_pass
 vsgi_fail: bl report_fail
 1: b 1b
     .balign 8
