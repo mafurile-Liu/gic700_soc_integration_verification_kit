@@ -1,215 +1,220 @@
-# SPI 中断测试流程详解（严格按 spi_basic_group1ns.S 逐行讲解）
+# SPI 中断测试流程详解（全部 7 个 SPI case，按实际代码逐步讲解）
 
-本文严格对照 spi/spi_basic_group1ns.S 的实际代码，从第一条指令到最后一条，逐步
-讲解一个 Non-secure Group 1 SPI 中断用例在干什么。每一步都给出对应代码并解释
-寄存器/bit 含义。
+本文对照 spi/ 目录下 7 个 SPI 测试的实际代码，逐步讲解。所有测试都基于
+common/gic_common.S 的成熟 API，每个测试只有 ~25 行。
 
-## 0. 这段代码在干什么（整体）
+## 0. 共同模式与 API
 
-配置一个 SPI（默认 INTID 32）为 Non-secure Group 1、电平触发、路由到本核，使能
-它；然后本核进 WFI 挂起；由 testbench 把 SPI 输入信号拉有效，GIC 把该 SPI 置
-pending 并唤醒本核；中断处理程序读 IAR 应答、写 EOIR 结束、校验 INTID 正确后
-报 PASS。下面逐步对照代码。
-
-## 1. 使能 GICD 的 Non-secure Group 1
+所有 SPI 测试共享同一个骨架：
 
 ~~~
-    bl gic_dist_enable_grp1ns
+test_start:
+        bl      gic_init_<group>          // 1. 一次性 bring-up
+        ldr     x1,=gic_expected_intid    // 2. 存期望 INTID
+        mov     x2,#SPI_INTID
+        str     x2,[x1]
+        mov     x0,#SPI_INTID
+        bl      spi_config_<group>        // 3. 配置 SPI（组/优先级/触发/路由/使能）
+        ...（变体可能加 spi_set_prio / spi_set_edge）
+        dsb     sy
+        isb
+        msr     daifclr,#2                // 4. 开 IRQ
+wait_loop:
+        wfi                               // 5. 等 testbench 注入
+        b       wait_loop
+irq_handler:
+        b       gic_irq_handler_grp1      // 6. 默认 handler（ack/eoi/校验/pass-fail）
 ~~~
-调用公共子程序（见 common/gic_common.S）：在 GICD_CTLR 把 bit[1] EnableGrp1NS
-置 1，允许 Non-secure Group 1 中断被分发；写后轮询 GICD_CTLR.RWP（bit[31]）到 0
-等写生效。GIC-700 的 ARE（亲和路由）固定为 1，不用单独配。
 
-## 2. 唤醒本核 Redistributor
+API 做了什么（实现在 gic_common.S）：
+- gic_init_grp1ns：GICD_CTLR.EnableGrp1NS=1 + 轮询 RWP；GICR_WAKER 唤醒 +
+  轮询 ChildrenAsleep；CPU 接口 ICC_SRE=1/ICC_PMR=0xFF/ICC_IGRPEN1=1。
+- spi_config_ns(x0=INTID)：运行时算 bank=INTID/32、bit=1<<(INTID%32)，做
+  GICD_IGROUPR(置Group1)+IGRPMODR(清=NSGrp1)+IPRIORITYR(0x80)+ICFGR(电平)+
+  IROUTER(路由到本核,IRM=0)+ISENABLER(使能)。
+- gic_irq_handler_grp1：读 ICC_IAR1(INTID, pending->active) -> 写 ICC_EOIR1
+  (priority drop+deactivate) -> 比对 gic_expected_intid -> 等 isr_el1 bit7 清
+  -> test_pass(x0=0,wfe) / 不符 test_fail(x0=1,wfe)。
 
-~~~
-    bl gicr_wake
-~~~
-SPI 经 GICD 分发后最终送到本核 Redistributor。gicr_wake 把 GICR_WAKER.
-ProcessorSleep（bit[1]）写 0 让本核 Redistributor 上线，轮询 ChildrenAsleep
-（bit[2]）==0 确认 GIC-CPU 接口总线就绪。必须在配 CPU 接口之前做。
+## 1. spi_basic_group1ns.S（Non-secure Group 1，IRQ）
 
-## 3. 使能 CPU 接口
-
-~~~
-    bl cpu_if_init_grp1
-~~~
-- ICC_SRE_EL1.SRE（bit[0]）=1：允许用系统寄存器（ICC_*_EL1）访问 CPU 接口。
-- ICC_PMR_EL1=0xFF：优先级掩码，0xFF=放行全部优先级。
-- ICC_IGRPEN1_EL1（bit[0]）=1：使能 Group 1 中断信号送到本核。
-
-## 4. 取 GICD 基址
-
-~~~
-    LOAD_GICD(x0)        // 即 ldr x0, =GICD_BASE
-~~~
-x0 = Distributor 基地址（在 common/gic_common.h 里定义为 GICD_BASE，需按你的
-SoC 地址表填）。后面所有 GICD 寄存器访问都以 x0 为基址。
-
-## 5. 分组：GICD_IGROUPRn（置 Group 1）
+完整代码与逐行讲解：
 
 ~~~
-    ldr w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
-    orr w1, w1, #SPI_BIT(SPI_INTID)
-    str w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
+test_start:
+        bl      gic_init_grp1ns
 ~~~
-SPI 每 32 个 INTID 共用一个 GICD_IGROUPRn（n=INTID/32）。读出该寄存器，把本 SPI
-对应 bit 置 1（=Group 1），写回。这是经典的 读-改-写。
-
-## 6. 分组修饰：GICD_IGRPMODRn（定为 Non-secure Group 1）
+一次性 bring-up（见上）。GICD 使能 NS Group1、唤醒本核 Redistributor、使能 CPU
+接口。ARE 在 GIC-700 固定为 1，不用配。
 
 ~~~
-    ldr w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_INTID)*4)]
-    bic w1, w1, #SPI_BIT(SPI_INTID)
-    str w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_INTID)*4)]
+        ldr     x1,=gic_expected_intid
+        mov     x2,#SPI_INTID            // SPI_INTID=32
+        str     x2,[x1]
 ~~~
-IGROUPR=1 配合 IGRPMODR：bit=0 -> Non-secure Group 1；bit=1 -> Secure Group 1。
-这里把对应 bit 清 0，定为 Non-secure Group 1（-> IRQ）。若 GICD_CTLR.DS=1（单安
-全态）此寄存器 RAZ/WI。
-
-## 7. 优先级：GICD_IPRIORITYRn
+把期望的 INTID（32）存入全局变量 gic_expected_intid，供默认 handler 校验。
 
 ~~~
-    mov w1, #PRIO_DEFAULT      // 0x80
-    strb w1, [x0, #SPI_IPRIORITYR_OFF(SPI_INTID)]
+        mov     x0,#SPI_INTID
+        bl      spi_config_ns
 ~~~
-每个 INTID 一个字节优先级（0x00 最高，0xFF 最低）。写 0x80（中等）。strb 是字节
-写。
-
-## 8. 触发方式：GICD_ICFGRn（电平）
+配置 SPI 32：分到 Non-secure Group 1、优先级 0x80、电平触发、路由到本核
+（GICD_IROUTER 从 MPIDR 取亲和值，IRM=0）、使能。bank/bit 在函数内运行时算。
 
 ~~~
-    ldr w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
-    bic w1, w1, #(3 << SPI_ICFGR_SHIFT(SPI_INTID))   // 0b00 = level
-    str w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
+        dsb     sy
+        isb
+        msr     daifclr,#2
+wait_loop:
+        wfi
+        b       wait_loop
 ~~~
-每个 INTID 占 2 bit：0b00=电平敏感，0b10=边沿触发。这里把本 SPI 的 2 bit 清成
-0b00（电平）。
-
-## 9. 路由：GICD_IROUTERn（路由到本核，IRM=0）
-
-~~~
-    // route to this PE: Aff0/Aff1/Aff2 = MPIDR[23:0]; Aff3 = MPIDR[39:32] -> IROUTER[39:32] (bfi); IRM[31]=0 (specific PE)
-    mrs x2, mpidr_el1
-    and x3, x2, #0xFFFFFF
-    ubfx x4, x2, #32, #8
-    bfi x3, x4, #32, #8
-    str x3, [x0, #SPI_IROUTER_OFF(SPI_INTID)]
-~~~
-GICD_IROUTER 字段：Aff0[7:0] Aff1[15:8] Aff2[23:16] Aff3[39:32]，IRM（bit[31]）
-=0=路由到这个指定 PE（=1 则 1-of-N 任意 PE）。代码从本核 MPIDR 取：低 24 位
-（Aff0/Aff1/Aff2）直接用，Aff3 在 MPIDR[39:32]、用 ubfx 取出再 bfi 放到
-IROUTER[39:32]。IRM 留 0，所以这个 SPI 发给本核自己。
-
-## 10. 使能：GICD_ISENABLERn
+dsb 保证前面的寄存器写对 GIC 可见；daifclr #2 清 PSTATE.I 开 IRQ；WFI 挂起。
+**此时 testbench 要把 SPI 输入信号（接 SPI Collator）拉有效**，GIC 才 pending
+并唤醒本核（电平型：IAR 后 de-assert；边沿型：一个脉冲）。
 
 ~~~
-    mov w1, #SPI_BIT(SPI_INTID)
-    str w1, [x0, #SPI_ISENABLER_OFF(SPI_INTID)]
+irq_handler:
+        b       gic_irq_handler_grp1
 ~~~
-把本 SPI 对应 bit 置 1 使能它。到这里 SPI 配置全部完成。
+中断被取后跳到 irq_handler，转默认 handler：ack(IAR1)->eoi(EOIR1)->比对
+expected->等 IRQ 撤销->test_pass。INTID 不符则 test_fail。
 
-## 11. 进 WFI 等 testbench 注入（关键：需要你的环境配合）
+## 2. spi_basic_group0.S（Group 0，FIQ）
 
+与 group1ns 的差异：
+- bl gic_init_grp0（GICD EnableGrp0、CPU IF ICC_IGRPEN0）
+- bl spi_config_grp0（GICD_IGROUPR bit=0 = Group 0）
+- msr daifclr,#1（开 FIQ，PSTATE.F）
+- 向量标签 fiq_handler: b gic_irq_handler_grp0（用 IAR0/EOIR0，isr bit6=FIQ）
+
+## 3. spi_basic_group1s.S（Secure Group 1）
+
+差异：
+- bl gic_init_grp1s（GICD EnableGrp1S）
+- bl spi_config_1s（IGROUP=1, IGRPMOD=1 = Secure Group 1）
+- 仍走 irq_handler / gic_irq_handler_grp1（Secure Group1 在安全 EL 也以 IRQ 形式）
+- 需在安全态运行
+
+## 4. spi_priority.S（优先级覆盖）
+
+在 spi_config_ns 之后额外：
 ~~~
-    // ===== TESTBENCH INJECTION POINT =====
-    // ...testbench 把 SPI 输入信号拉有效...
-    bl wfi_wait_irq
+        mov     x0,#SPI_INTID
+        mov     x1,#0x40
+        bl      spi_set_prio
 ~~~
-wfi_wait_irq（见 common/gic_common.S）：先 dsb sy（保证前面所有寄存器写对 GIC
-可见），再 msr daifclr, #2 清 PSTATE.I（开 IRQ），然后 wfi 挂起。
+spi_config_ns 默认设 0x80；这里用 spi_set_prio 覆盖成 0x40（更高优先级）。
+结合 ICC_PMR 可验证优先级掩码（PMR<优先级 的不投递）。
 
-**就在这里，需要你的 testbench 把 SPI 输入信号（接到 SPI Collator 的那根线）拉
-到有效电平**，GIC 才会把该 SPI 置 pending 并唤醒本核：
-- 电平型：拉有效后，要等处理程序读 IAR 之后再 de-assert，否则 EOIR 之后会重新
-  pending。
-- 边沿型：给一个有效脉冲即可。
-- 不想用 testbench 也可以：往 GICD_SETSPI_NSR 写 INTID（消息触发），或写
-  GICD_ISPENDRn 直接置 pending。
+## 5. spi_level.S（电平敏感）
 
-## 12. 中断处理程序入口
+就是 spi_config_ns（默认电平）。代码与 basic 相同；区别在 testbench 契约：
+电平型必须 IAR 后、EOIR 前 de-assert 信号，否则 EOIR 后重新 pending。
 
+## 6. spi_edge.S（边沿触发）
+
+在 spi_config_ns 之后：
 ~~~
-    .global curr_el_spx_irq_vector
-curr_el_spx_irq_vector:
-    ldr x0, =core_sync1
-    bl core_synchronisation
+        mov     x0,#SPI_INTID
+        bl      spi_set_edge
 ~~~
-中断被取后，PE 跳到当前异常级别的 IRQ 向量 curr_el_spx_irq_vector（由测试框架的
-向量表跳过来）。先 ldr 取一个同步变量地址 core_sync1，调 core_synchronisation
-做核间同步（框架提供，沿用 ARM wfi.s 用例的约定）。
+spi_set_edge 把 GICD_ICFGR 对应 2 bit 设为 0b10（边沿）。testbench 给一个有效
+脉冲即可（边沿 pending 在被 activate 时清除）。
 
-## 13. 应答：读 ICC_IAR1_EL1
+## 7. spi_preempt.S（抢占）
 
-~~~
-    mrs x3, ICC_IAR1_EL1
-~~~
-读中断应答寄存器，返回被取走中断的 INTID（存 x3），同时该中断状态机推进
-（pending -> active）。这是 告诉 GIC 我收到了。
-
-## 14. 结束：写 ICC_EOIR1_EL1
-
-~~~
-    msr ICC_EOIR1_EL1, x3
-~~~
-把刚应答的 INTID 写回 EOI 寄存器，完成 priority drop + deactivation
-（EOImode=0 时二合一）。这表示我处理完了。
-
-## 15. 校验 INTID
-
-~~~
-    mov w2, #SPI_INTID
-    cmp w3, w2
-    b.ne spi_fail
-~~~
-比较收到的 INTID（x3）和配置的 SPI_INTID，不一致就跳 spi_fail 报失败。
-
-## 16. 等 IRQ 信号撤销
+最复杂。LO（INTID 32, prio 0x80）先被处理，handler 里注入 HI（INTID 33,
+prio 0x40）抢占。
 
 ~~~
-1:  mrs  x21, isr_el1
-    tbnz x21, #7, 1b
+        bl      gic_init_grp1ns
+        msr     ICC_BPR1_EL1,xzr              // BPR=0：任意优先级差都可抢占
 ~~~
-读 ISR_EL1（中断状态寄存器），bit[7]=IRQ。如果还是 1（IRQ 仍有效）就循环等，直到
-IRQ 撤销。对电平中断，这依赖 testbench 在 IAR 之后 de-assert 了信号。
-
-## 17. 校验本核就是预期跑这个用例的核
+ICC_BPR1=0 让全部优先级位参与抢占判定。
 
 ~~~
-    mrs x0, mpidr_el1
-    ubfx x0, x0, #0, #16
-    adr x1, exec_pe_var
-    ldr w2, [x1]
-    cmp x0, x2
-    bne end_wfi
+        // config LO: group NS, prio 0x80, level, enable
+        mov     x0,#LO_ID
+        bl      spi_set_group_ns
+        mov     x0,#LO_ID
+        mov     x1,#0x80
+        bl      spi_set_prio
+        mov     x0,#LO_ID
+        bl      spi_set_level
+        mov     x0,#LO_ID
+        bl      spi_enable
+        // config HI: 同上但 prio 0x40
 ~~~
-取本核 MPIDR 低 16 位，和框架变量 exec_pe_var（预期执行该用例的 PE 号）比较；不
-符就跳 end_wfi（不报结果）。这是沿用 wfi.s 的多核用例约定，确保只在指定核上报。
-
-## 18. 报结果
-
-~~~
-    bl report_pass
-spi_fail:
-    bl report_fail
-end_wfi:
-    b end_wfi
-~~~
-校验全过则 report_pass（调框架 end_test 打印 PASS 并结束仿真）；否则 spi_fail 走
-report_fail。end_wfi 是个死循环，防止 end_test 万一返回。
-
-## 19. 数据
+用单字段 API 分别配 LO（prio 0x80）和 HI（prio 0x40），都 NS Group1、电平、使能。
 
 ~~~
-    .balign 8
-core_sync1: .word 0
-    .end
+        ldr     x1,=gic_expected_intid
+        mov     x2,#LO_ID
+        str     x2,[x1]                       // expected = LO
+        ldr     x1,=preempt_seen
+        str     xzr,[x1]                      // 清 seen 标志
+        mov     x0,#LO_ID
+        bl      spi_set_pend                  // 注入 LO（自注入，不需 testbench）
 ~~~
-core_sync1 是第 12 步 core_synchronisation 用的同步变量（4 字节，初值 0）。
+expected 存 LO；清抢占标志；用 spi_set_pend 注入 LO（GICD_ISPENDRn）。注意
+preempt 是自注入（spi_set_pend），不依赖 testbench。
 
-## 20. 可调项
+~~~
+irq_handler:
+        bl      gic_ack_grp1                  // x0 = INTID
+        mov     x9,x0
+        cmp     x9,#HI_ID
+        b.eq    hi_path
+~~~
+handler 用 gic_ack_grp1 读 INTID。先到的应是 LO；若是 HI（嵌套进入）走 hi_path。
 
-- 默认 SPI_INTID=32，编译时用 -DSPI_INTID=<n> 覆盖（n 在 32~1019）。
-- GICD_BASE / GICR_RD_BASE 必须按你的 SoC 地址表填（common/gic_common.h）。
-- 想测边沿看 spi/spi_edge.S；优先级/掩码看 spi/spi_priority.S；抢占看
-  spi/spi_preempt.S；Group 0（FIQ）看 spi/spi_basic_group0.S。
+LO 路径：
+~~~
+        ldr     x1,=preempt_lo_id
+        str     x9,[x1]                       // 存 LO INTID 到内存（跨嵌套保留）
+        msr     daifclr,#2                    // 开 IRQ 让 HI 能抢占
+        mov     x0,#HI_ID
+        bl      spi_set_pend                  // 注入 HI -> 抢占
+        dsb     sy
+1:      ldr     x1,=preempt_seen              // 自旋等 HI 跑完
+        ldr     x2,[x1]
+        cmp     x2,#1
+        b.ne    1b
+        ldr     x0,=preempt_lo_id
+        ldr     x0,[x0]                       // 取回 LO INTID
+        bl      gic_eoi_grp1                  // 结束 LO
+        cmp     x0,#LO_ID
+        b.ne    test_fail
+        b       test_pass
+~~~
+LO handler：存 INTID 到内存（寄存器会被嵌套破坏）；开 IRQ；注入 HI（抢占发生，
+跳 hi_path）；自旋等 preempt_seen=1（HI 跑完）；取回 LO INTID；gic_eoi_grp1 结束
+LO；校验后 test_pass。
+
+HI 路径（嵌套）：
+~~~
+hi_path:
+        ldr     x1,=preempt_seen
+        mov     x2,#1
+        str     x2,[x1]                       // 标记 HI 已跑
+        mov     x0,x9
+        bl      gic_eoi_grp1                  // 结束 HI
+        eret                                  // 返回 LO handler
+~~~
+HI handler：置 preempt_seen=1；gic_eoi_grp1 结束 HI；eret 返回被抢占的 LO handler
+（LO 的自旋随后检测到 seen=1，继续 EOIR LO）。
+
+数据：preempt_seen / preempt_lo_id（内存标志，跨嵌套保留）。
+
+## 小结
+
+| case | 关键点 |
+|------|--------|
+| basic_group1ns | NS Group1，IRQ，spi_config_ns 全套 |
+| basic_group0 | Group0，FIQ，IAR0/EOIR0 |
+| basic_group1s | Secure Group1，spi_config_1s |
+| priority | spi_set_prio 覆盖优先级 |
+| level | 电平（默认），testbench IAR 后 de-assert |
+| edge | spi_set_edge 边沿，一个脉冲 |
+| preempt | 双优先级抢占，自注入，嵌套 handler+eret |

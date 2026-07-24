@@ -1,27 +1,33 @@
 # GIC Test Case Guide
 
+所有用例基于 common/gic_common.S 的成熟 API。basic 用例 ~25 行。
+
 | File | What it verifies |
 |------|------------------|
-| ppi/ppi_basic_group0.S | PPI delivery as Group 0 (FIQ), force-injected |
-| ppi/ppi_basic_group1s.S | PPI as Secure Group 1 |
-| ppi/ppi_basic_group1ns.S | PPI as Non-secure Group 1 (IRQ) |
-| ppi/ppi_priority.S | PPI priority vs ICC_PMR mask |
-| ppi/ppi_level.S | Level-sensitive PPI state machine |
-| ppi/ppi_edge.S | Edge-triggered PPI |
-| ppi/ppi_preempt.S | PPI preemption (low-prio preempted by high-prio) |
-| spi/spi_basic_group0/1s/1ns.S | SPI delivery per group, routed to this PE |
-| spi/spi_priority.S | SPI priority vs ICC_PMR |
-| spi/spi_level.S / spi_edge.S | SPI level / edge |
-| spi/spi_preempt.S | SPI preemption |
-| sgi/sgi_basic_group0/1s/1ns.S | SGI delivery per group (GICR_ISPENDR0 inject) |
-| sgi/sgi_broadcast.S | SGI broadcast concept (ICC_SGI1R IRM=1) |
-| sgi/sgi_affinity.S | SGI affinity targeting concept |
+| ppi/ppi_basic_group0.S | PPI Group0 (FIQ), ppi_config_grp0 |
+| ppi/ppi_basic_group1s.S | PPI Secure Group1, ppi_config_1s |
+| ppi/ppi_basic_group1ns.S | PPI NS Group1 (IRQ), ppi_config_ns |
+| ppi/ppi_priority.S | PPI 优先级覆盖 (ppi_set_prio) |
+| ppi/ppi_level.S | PPI 电平（默认），testbench IAR 后 de-assert |
+| ppi/ppi_edge.S | PPI 边沿 (ppi_set_edge) |
+| ppi/ppi_preempt.S | PPI 抢占（双优先级，嵌套 handler+eret） |
+| spi/spi_basic_group0.S | SPI Group0 (FIQ), spi_config_grp0 |
+| spi/spi_basic_group1s.S | SPI Secure Group1, spi_config_1s |
+| spi/spi_basic_group1ns.S | SPI NS Group1 (IRQ), spi_config_ns |
+| spi/spi_priority.S | SPI 优先级覆盖 (spi_set_prio) |
+| spi/spi_level.S | SPI 电平 |
+| spi/spi_edge.S | SPI 边沿 (spi_set_edge) |
+| spi/spi_preempt.S | SPI 抢占 |
+| sgi/sgi_basic_group0/1s/1ns.S | SGI 各组（GICR_ISPENDR0 自注入） |
+| sgi/sgi_broadcast.S | SGI 广播 (ICC_SGI1R IRM=1，多核) |
+| sgi/sgi_affinity.S | SGI 亲和定向 (ICC_SGI1R IRM=0 打给自己) |
 | lpi/lpi_basic.S | LPI via ITS (MAPD/MAPC/MAPI/INV/SYNC + GITS_TRANSLATER) |
-| lpi/lpi_priority.S | LPI priority (Property table byte) |
-| vlpi/vlpi_basic.S | Virtual LPI (GICv4) skeleton |
-| vsgi/vsgi_basic.S | vSGI direct injection (GITS_SGIR) |
+| lpi/lpi_priority.S | LPI 优先级（Property 表字节） |
+| vlpi/vlpi_basic.S | 虚拟 LPI (GICv4) 骨架 |
+| vsgi/vsgi_basic.S | vSGI 直接注入 (GITS_SGIR) |
 
-Group conventions: Group 0 -> FIQ (ICC_IAR0/EOIR0, fiq vector, isr bit6);
-Group 1 -> IRQ (ICC_IAR1/EOIR1, irq vector, isr bit7). Secure Group 1 must run at
-a Secure EL. SPI/PPI/SGI are per-bank: SPI in GICD, PPI/SGI in the GICR SGI_base
-frame (RD_base + 0x10000).
+组约定：Group0->FIQ（IAR0/EOIR0, fiq_handler, daifclr#1）；Group1->IRQ
+（IAR1/EOIR1, irq_handler, daifclr#2）。SPI 在 GICD 配；PPI/SGI 在 GICR SGI_base
+帧（RD_base+0x10000）；API 内部运行时算 bank/bit，测试只传 INTID。
+
+详细 SPI 流程见 doc/SPI_Test_Flow_Walkthrough.md（全 7 case 逐行讲解）。

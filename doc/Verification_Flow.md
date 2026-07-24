@@ -1,29 +1,35 @@
 # GIC Verification Flow
 
-Every test follows the same shape:
+所有测试基于 common/gic_common.S 的成熟 API，骨架统一：
 
-1. GICD bring-up: enable the target interrupt group (EnableGrp0 / EnableGrp1NS /
-   EnableGrp1S) and poll GICD_CTLR.RWP. ARE is fixed=1 in GIC-700.
-2. Redistributor wake: GICR_WAKER.ProcessorSleep=0, poll ChildrenAsleep=0.
-3. Configure the interrupt source:
-   - SPI: GICD_IGROUPR/IGRPMODR/IPRIORITYR/ICFGR/IROUTER/ISENABLER.
-   - PPI/SGI: same fields in the GICR SGI_base frame (GICR_*0).
-   - LPI: memory tables + ITS (see lpi_basic.S).
-4. CPU interface: ICC_SRE=1, ICC_PMR=0xFF, ICC_IGRPEN0/1=1.
-5. Inject the interrupt:
-   - SPI/PPI: testbench forces the input signal (contract in each test header).
-   - SGI: GICR_ISPENDR0 (this kit) or ICC_SGI1R_EL1 (multi-PE).
-   - LPI: write GITS_TRANSLATER.
-6. WFI: unmask IRQ/FIQ (daifclr) and WFI; the GIC wakes the PE.
-7. Handler: read ICC_IAR0/1 (ack, returns INTID) -> clear source (level) ->
-   write ICC_EOIR0/1 (deactivate) -> compare INTID -> report pass/fail.
+1. Bring-up：bl gic_init_grp1ns（或 grp1s/grp0）—— 一次调用完成 GICD 组使能
+   +RWP 轮询、GICR 唤醒、CPU 接口使能。
+2. 设期望 INTID：存入 gic_expected_intid（供默认 handler 校验）。
+3. 配置中断源：
+   - SPI：bl spi_config_ns(intid)（组/优先级/触发/路由/使能，运行时算 bank/bit）
+   - PPI/SGI：bl ppi_config_ns(intid)
+   - 单字段覆盖：spi_set_prio / spi_set_edge / spi_set_level 等
+   - LPI：ITS bring-up + GITS_TRANSLATER（见 lpi_basic.S）
+4. WFI：dsb sy; isb; msr daifclr,#2(IRQ)/#1(FIQ); wfi 循环。
+5. 注入中断：
+   - SPI/PPI basic：testbench force 输入信号（代码里有 /*---- Testbench ----*/ 标注）
+   - SGI/preempt：自注入 ppi_set_pend / spi_set_pend（无需 testbench）
+   - LPI：写 GITS_TRANSLATER
+6. Handler：irq_handler: b gic_irq_handler_grp1（默认：ack IAR1 + eoi EOIR1 +
+   比对 expected + 等 IRQ 撤销 + test_pass/test_fail）。
+   抢占等自定义场景自己写 handler（用 gic_ack_grp1/gic_eoi_grp1/test_pass）。
 
-## Testbench contract (SPI/PPI force injection)
-- After the PE enters WFI, force the interrupt input to its active level.
-- Level-sensitive: de-assert AFTER the handler reads IAR and BEFORE it writes EOIR.
-- Edge-triggered: a single active edge is enough.
+## 结果约定（样板风格）
+test_pass: mov x0,#0; wfe 循环。test_fail: mov x0,#1; wfe 循环。仿真器读 x0 判
+pass/fail。
 
-## TODOs before running
-- Fill GICD_BASE / GICR_RD_BASE / GITS_BASE in common/gic_common.h (ZJ100 map).
-- Confirm PPI INTID vs Cortex-A720 TRM / ZJ100 PPI wiring.
-- Verify ITS command 32-byte encodings vs IHI0069 ch5 (lpi_basic.S).
+## Testbench 注入契约（SPI/PPI）
+- PE 进 WFI 后，force 中断输入信号到有效电平。
+- 电平：IAR 后、EOIR 前 de-assert（否则重新 pending）。
+- 边沿：一个有效脉冲。
+- 不想用 testbench：SPI 写 GICD_SETSPI_NSR；PPI/SGI 写 GICR_ISPENDR0。
+
+## 上板前 TODO
+- common/gic_common.h 填 GICD_BASE / GICR_RD_BASE / GITS_BASE（ZJ100 地址表）
+- PPI INTID 对齐 Cortex-A720 TRM（默认 CNTV=27）
+- LPI 的 ITS 命令字节编码对照 IHI0069 ch5（lpi_basic.S 的 its_issue_commands）

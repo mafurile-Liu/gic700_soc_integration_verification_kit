@@ -1,38 +1,64 @@
 # GIC-700 SoC Integration Verification Kit
 
-Assembly-level GIC-700 interrupt verification cases for SoC integration (e.g.
-ZJ100 SYS_CPU: 24x Cortex-A720, 6 clusters, GIC-700 with GICD + 6x GCI, ITS).
-Built on the ARM bare-metal WFI example style (test_start / vector handlers /
-end_test).
+GIC-700 中断验证用例（汇编，AArch64 GNU as），面向 SoC 集成验证（如 ZJ100
+SYS_CPU：24x Cortex-A720，GIC-700 + 6x GCI + ITS）。基于 common/ 成熟 API，
+每个用例 ~25 行。
 
-## Structure
+## 结构
 ~~~
-common/   gic_reg.h, gic_macros.h, gic_common.h, gic_common.S (shared helpers)
-ppi/      PPI cases (testbench force-injects the PPI signal)
-spi/      SPI cases (testbench force-injects the SPI signal)
-sgi/      SGI cases (GICR_ISPENDR0 injection; ICC_SGI1R documented)
-lpi/      LPI cases (ITS: MAPD/MAPC/MAPI/INV/SYNC + GITS_TRANSLATER)
-vlpi/     Virtual LPI (GICv4) skeleton
-vsgi/     Virtual SGI (GITS_SGIR) skeleton
-doc/      Register_Reference.md, Verification_Flow.md, GIC_TestCase_Guide.md
+common/   gic_reg.h, gic_macros.h, gic_common.h, gic_common.S
+          （成熟 GIC API：init/config/ack/eoi/default-handler/pass-fail）
+ppi/      PPI 用例（testbench force 信号）
+spi/      SPI 用例（testbench force 信号）
+sgi/      SGI 用例（GICR_ISPENDR0 自注入；ICC_SGI1R 软件生成）
+lpi/      LPI 用例（ITS：MAPD/MAPC/MAPI/INV/SYNC + GITS_TRANSLATER）
+vlpi/     虚拟 LPI（GICv4）骨架
+vsgi/     虚拟 SGI（GITS_SGIR）骨架
+doc/      Architecture_Reference, Register_Reference, Verification_Flow,
+          GIC_TestCase_Guide, SPI_Test_Flow_Walkthrough
 examples/ example_makefile.md, porting_to_arm_delivery.md
 ~~~
 
-## What each test does
-Configure the GIC-700 for an interrupt source -> WFI -> (testbench/software
-injects) -> GIC delivers IRQ/FIQ -> handler acks ICC_IAR / deactivates ICC_EOIR ->
-checks INTID -> pass/fail. See doc/Verification_Flow.md.
+## API（common/gic_common.S）
+- Bring-up：gic_init_grp1ns / grp1s / grp0（一次调用：GICD+GICR+CPU 接口）
+- 配置：ppi_config_ns/grp0/1s、spi_config_ns/grp0/1s（运行时算 bank/bit）
+- 单字段：ppi/spi_set_group_*、set_prio、set_level/set_edge、enable、set_pend、
+  route_self
+- 应答：gic_ack_grp1/grp0、gic_eoi_grp1/grp0
+- 默认 handler：gic_irq_handler_grp1/grp0（ack+eoi+校验+pass/fail）
+- 结果：test_pass（x0=0,wfe）/ test_fail（x0=1,wfe）
 
-## Before running (TODOs)
-- Fill GICD_BASE / GICR_RD_BASE / GITS_BASE in common/gic_common.h from your SoC
-  address map. (ZJ100: gic700 = 7168KB in the CPU cmn region; per-PE GICR bases TBD.)
-- Confirm PPI INTID vs the Cortex-A720 TRM / SoC PPI wiring (default CNTV=27).
-- Verify the ITS command 32-byte encodings against GIC Architecture Spec IHI0069
-  ch5 (lpi_basic.S).
-- SPI/PPI: the testbench must force the interrupt input (contract in each header).
+## 典型用例（~25 行）
+~~~
+test_start:
+        bl      gic_init_grp1ns
+        ldr     x1,=gic_expected_intid
+        mov     x2,#SPI_INTID
+        str     x2,[x1]
+        mov     x0,#SPI_INTID
+        bl      spi_config_ns
+        dsb     sy
+        isb
+        msr     daifclr,#2
+wait_loop:
+        wfi
+        b       wait_loop
+irq_handler:
+        b       gic_irq_handler_grp1
+~~~
 
-## References
+## 编译检查
+~~~
+clang --target=aarch64-linux-gnu -c <file>.S -Icommon -o NUL
+~~~
+（或 aarch64-none-elf-gcc -c）。全 24 个 .S 编译通过（clang 18.1.8 验证）。
+
+## TODO（上板前）
+- common/gic_common.h 填 GICD_BASE / GICR_RD_BASE / GITS_BASE（ZJ100 地址表）
+- PPI INTID 对齐 Cortex-A720 TRM（默认 CNTV=27）
+- LPI 的 ITS 命令字节编码对照 IHI0069 ch5
+
+## 参考
 - Arm CoreLink GIC-700 TRM (101516_0400_12_en)
-- GIC Architecture Spec (IHI0069)
-- GIC-700_LPI_寄存器配置流程.md (LPI register flow, parent project)
-- GIC-700_四种中断配置与激励生成流程.md (four-interrupt stimulus guide)
+- GIC Architecture Spec (IHI0069) —— 见 doc/Architecture_Reference.md（项目长期记忆）
+- doc/SPI_Test_Flow_Walkthrough.md（SPI 全 7 case 逐行讲解）
