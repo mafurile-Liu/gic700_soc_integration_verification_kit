@@ -29,6 +29,14 @@ test_start:
     str x3, [x0, #SPI_IROUTER_OFF(SPI_INTID)]
     mov w1, #SPI_BIT(SPI_INTID)
     str w1, [x0, #SPI_ISENABLER_OFF(SPI_INTID)]
+    // ===== TESTBENCH INJECTION POINT =====
+    // The PE is about to enter WFI (next line). Your testbench must now FORCE
+    // the SPI input signal (into the SPI Collator) to its ACTIVE level, so the
+    // GIC pends the interrupt and wakes this PE.
+    //   level-sensitive : hold active, then de-assert AFTER IAR and BEFORE EOIR.
+    //   edge-triggered  : a single active pulse is enough.
+    // (No testbench? Alternative: write GICD_SETSPI_NSR with the INTID, or
+    //  write GICD_ISPENDRn to set pending directly.)
     bl wfi_wait_irq
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:

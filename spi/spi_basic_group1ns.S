@@ -26,7 +26,7 @@ test_start:
     ldr w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
     bic w1, w1, #(3 << SPI_ICFGR_SHIFT(SPI_INTID))  // level
     str w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
-    // route to this PE: Aff0|Aff1<<8|Aff2<<16|Aff3<<24 (from MPIDR)
+    // route to this PE: Aff0/Aff1/Aff2 = MPIDR[23:0]; Aff3 = MPIDR[39:32] -> IROUTER[39:32] (bfi); IRM[31]=0 (specific PE)
     mrs x2, mpidr_el1  //  MPIDR: Aff0[7:0] Aff1[15:8] Aff2[23:16] Aff3[39:32]
     and x3, x2, #0xFFFFFF
     ubfx x4, x2, #32, #8
@@ -34,6 +34,14 @@ test_start:
     str x3, [x0, #SPI_IROUTER_OFF(SPI_INTID)]
     mov w1, #SPI_BIT(SPI_INTID)
     str w1, [x0, #SPI_ISENABLER_OFF(SPI_INTID)]
+    // ===== TESTBENCH INJECTION POINT =====
+    // The PE is about to enter WFI (next line). Your testbench must now FORCE
+    // the SPI input signal (into the SPI Collator) to its ACTIVE level, so the
+    // GIC pends the interrupt and wakes this PE.
+    //   level-sensitive : hold active, then de-assert AFTER IAR and BEFORE EOIR.
+    //   edge-triggered  : a single active pulse is enough.
+    // (No testbench? Alternative: write GICD_SETSPI_NSR with the INTID, or
+    //  write GICD_ISPENDRn to set pending directly.)
     bl wfi_wait_irq
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:

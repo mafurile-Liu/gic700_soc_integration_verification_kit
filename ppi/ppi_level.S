@@ -26,6 +26,13 @@ test_start:
     strb w1, [x5, #(GICR_IPRIORITYRn+PPI_INTID)]  //  Priority bytes: byte n = priority of INTID n (0x00 highest, 0xFF lowest)
     mov w1, #PPI_BIT
     str w1, [x5, #GICR_ISENABLER0]  //  Set-Enable: bit n=1 enables INTID n (0-31)
+    // ===== TESTBENCH INJECTION POINT =====
+    // The PE is about to enter WFI (next line). Your testbench must now FORCE
+    // the PPI input signal (ppi<INTID>) to its ACTIVE level, so the GIC pends
+    // the interrupt and wakes this PE.
+    //   level-sensitive : hold active, then de-assert AFTER the handler reads
+    //                      IAR and BEFORE it writes EOIR (else it re-pends).
+    //   edge-triggered  : a single active pulse is enough.
     bl wfi_wait_irq
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:

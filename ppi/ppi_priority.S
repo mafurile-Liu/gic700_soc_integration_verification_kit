@@ -30,6 +30,13 @@ test_start:
     mov x0, #0xFF
     msr ICC_PMR_EL1, x0  //  Priority Mask: only interrupts with prio < PMR are signaled; 0xFF = allow all
     isb  //  Instruction Synchronization Barrier
+    // ===== TESTBENCH INJECTION POINT =====
+    // The PE is about to enter WFI (next line). Your testbench must now FORCE
+    // the PPI input signal (ppi<INTID>) to its ACTIVE level, so the GIC pends
+    // the interrupt and wakes this PE.
+    //   level-sensitive : hold active, then de-assert AFTER the handler reads
+    //                      IAR and BEFORE it writes EOIR (else it re-pends).
+    //   edge-triggered  : a single active pulse is enough.
     bl wfi_wait_irq
     .global curr_el_spx_irq_vector
 curr_el_spx_irq_vector:
