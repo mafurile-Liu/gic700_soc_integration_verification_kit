@@ -87,13 +87,18 @@ test_start:
     // CWRITER and poll CREADR until it catches up. Command field layout: VERIFY
     // vs IHI0069 ch5 (opcode in DW0; fields DeviceID/EventID/ITT_base/INTID/ICID/
     // RDbase). The helper below writes 4x64-bit and kicks the queue.
-    // TODO: encode each command per IHI0069. Skeleton:
-    //   MAPD(DEV_ID -> ITS_ITT_BASE, size)
-    //   MAPC(COL_ID -> RD_PROCNUM)
-    //   MAPI(DEV_ID, EVT_ID -> LPI_INTID, COL_ID)
-    //   INV(DEV_ID, EVT_ID)
-    //   SYNC(RD_PROCNUM)
-    bl   its_issue_commands       // TODO: implement encodings (see notes)
+    // ITS command = 32 bytes = 4 x 64-bit DWs, written to CMDQ[CWRITER*32], then
+    // advance CWRITER and poll CREADR. Per-command args (IHI0069 ch5 pseudocode):
+    //   MAPD  (DeviceID, ITT_addr, Size, V)        opcode 0x08
+    //   MAPC  (ICID, RDbase, V)                    opcode 0x09
+    //   MAPI  (DeviceID, EventID, ICID, INTID)     opcode 0x0b
+    //   INV   (DeviceID, EventID)                  opcode 0x0c  (INVALL: ICID)
+    //   SYNC  (RDbase)                             opcode 0x05
+    // Opcodes are GICv3 standard (per Linux its driver); the per-DW field packing
+    // (which DW holds DeviceID/EventID/ITT_addr/INTID/ICID/RDbase/Size/V) is in the
+    // IHI0069 ch5 command-format figures - VERIFY byte positions against those
+    // figures before running. Command ORDER: MAPD -> MAPC -> MAPI -> INV -> SYNC.
+    bl   its_issue_commands       // TODO: encode the 5 commands per IHI0069 ch5
 
     // ---- Trigger LPI: write EventID to GITS_TRANSLATER ----
     mov  x0, #EVT_ID

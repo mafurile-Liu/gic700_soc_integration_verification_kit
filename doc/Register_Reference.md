@@ -32,3 +32,12 @@ SGIR 0x0020 (vSGI, ITS vSGI frame).
 ICC_IAR0/1_EL1, ICC_EOIR0/1_EL1, ICC_HPPIR0/1_EL1, ICC_RPR_EL1, ICC_PMR_EL1,
 ICC_BPRn_EL1, ICC_IGRPEN0/1_EL1, ICC_SRE_ELn, ICC_CTLR_ELn, ICC_DIR_EL1,
 ICC_SGI0R_EL1 / ICC_SGI1R_EL1 / ICC_ASGI1R_EL1.
+
+
+## Field layouts (IHI0069)
+GICD_IROUTER<n> (64-bit): Aff3[39:32] IRM[31] RES0[30:24] Aff2[23:16] Aff1[15:8] Aff0[7:0].
+  IRM=0 -> route to PE a.b.c.d; IRM=1 -> 1-of-N (any participating PE). (p580)
+
+ICC_SGI1R_EL1 / ICC_SGI0R_EL1 / ICC_ASGI1R_EL1 (WO, 64-bit):
+  Aff3[55:48] RS[43:41] IRM[40] Aff2[39:32] INTID(SGI id)[27:24] Aff1[23:16] TargetList[15:0].
+  IRM=1 -> all PEs except originator; IRM=0 -> PEs in Aff3.Aff2.Aff1.TargetList. (p225)

@@ -25,7 +25,7 @@ test_start:
     mrs  x2,mpidr_el1
     and x3,x2,#0xFFFFFF
     ubfx x4,x2,#32,#8
-    orr x3,x3,x4,lsl #24
+    bfi  x3, x4, #32, #8  // Aff3->[39:32]; IRM[31]=0 (specific PE, IHI0069 p580)
     str x3,[x0,#SPI_IROUTER_OFF(SPI_INTID)]
     mov  w1,#SPI_BIT(SPI_INTID)
     str w1,[x0,#SPI_ISENABLER_OFF(SPI_INTID)]
