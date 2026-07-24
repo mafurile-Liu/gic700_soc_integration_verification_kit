@@ -8,9 +8,11 @@
 | ppi/ppi_priority.S | PPI priority vs ICC_PMR mask |
 | ppi/ppi_level.S | Level-sensitive PPI state machine |
 | ppi/ppi_edge.S | Edge-triggered PPI |
+| ppi/ppi_preempt.S | PPI preemption (low-prio preempted by high-prio) |
 | spi/spi_basic_group0/1s/1ns.S | SPI delivery per group, routed to this PE |
 | spi/spi_priority.S | SPI priority vs ICC_PMR |
 | spi/spi_level.S / spi_edge.S | SPI level / edge |
+| spi/spi_preempt.S | SPI preemption |
 | sgi/sgi_basic_group0/1s/1ns.S | SGI delivery per group (GICR_ISPENDR0 inject) |
 | sgi/sgi_broadcast.S | SGI broadcast concept (ICC_SGI1R IRM=1) |
 | sgi/sgi_affinity.S | SGI affinity targeting concept |

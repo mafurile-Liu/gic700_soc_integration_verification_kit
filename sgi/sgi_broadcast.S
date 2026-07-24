@@ -1,10 +1,6 @@
-// SGI broadcast (Non-secure Group 1) - ICC_SGI1R_EL1 with IRM=1 (all participating
-// PEs EXCEPT the originator), per IHI0069 p225. Layout: INTID[27:24], IRM[40].
-//
-// NOTE: broadcast excludes the issuing PE, so on a single-PE run this PE does NOT
-// receive the SGI. Reception must be verified on a peer PE (multi-PE): run this
-// file on the originator (issues the broadcast) and sgi_basic_group1ns on the
-// peers (they receive + ack). For single-PE smoke this reports broadcast issued.
+// SGI broadcast (Non-secure Group 1) - ICC_SGI1R_EL1 with IRM=1 (all PEs except
+// originator), per IHI0069 p225. NOTE: broadcast excludes issuing PE; verify
+// reception on a peer PE (multi-PE). Single-PE: reports broadcast issued.
 #include "gic_common.h"
 #ifndef SGI_INTID
 #define SGI_INTID 0
@@ -28,8 +24,11 @@ test_start:
     strb w1, [x5, #(GICR_IPRIORITYRn + SGI_INTID)]
     mov  w1, #SGI_BIT
     str  w1, [x5, #GICR_ISENABLER0]
-    // Issue broadcast: IRM=1 (all except self). INTID[27:24].
-    ldr  x0, =((SGI_INTID << SGI1R_INTID_SHIFT) | (1 << SGI1R_IRM_SHIFT))
+    // Build ICC_SGI1R_EL1: IRM[40]=1, INTID[27:24]
+    mov  x1, #SGI_INTID
+    lsl  x1, x1, #24              // INTID << 24
+    movz x0, #0x100, lsl #32      // 1 << 40 (IRM)
+    orr  x0, x0, x1
     msr  ICC_SGI1R_EL1, x0
     dsb  sy
     bl   report_pass

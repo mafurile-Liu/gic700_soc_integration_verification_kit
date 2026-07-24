@@ -1,8 +1,6 @@
 // SGI affinity-targeted (Non-secure Group 1) - generate a REAL SGI to THIS PE
 // via ICC_SGI1R_EL1 (IRM=0, TargetList = this PE), per IHI0069 p225.
-// Layout: Aff3[55:48] RS[43:41] IRM[40] Aff2[39:32] INTID[27:24] Aff1[23:16] TargetList[15:0].
-// This exercises the actual SGI generation path (CPU interface -> Distributor),
-// replacing the GICR_ISPENDR0 shortcut used by sgi_basic_group*.
+// Layout: Aff3[55:48] Aff2[39:32] INTID[27:24] Aff1[23:16] TargetList[15:0].
 // INTID: 0 default; override -DSGI_INTID=<n> (0..15). TRM: 4.9 SGIs, 5.5.
 #include "gic_common.h"
 #ifndef SGI_INTID
@@ -27,18 +25,20 @@ test_start:
     strb w1, [x5, #(GICR_IPRIORITYRn + SGI_INTID)]
     mov  w1, #SGI_BIT
     str  w1, [x5, #GICR_ISENABLER0]
-    // Build ICC_SGI1R_EL1: target THIS PE (IRM=0)
+    // Build ICC_SGI1R_EL1 (IRM=0, target this PE):
+    //   Aff3[55:48] Aff2[39:32] INTID[27:24] Aff1[23:16] TargetList[15:0]
     mrs  x2, mpidr_el1
     ubfx x3, x2, #8, #8            // Aff1
     ubfx x4, x2, #16, #8           // Aff2
-    ubfx x5, x2, #32, #8           // Aff3 (x5 reused; SGI_base no longer needed)
+    ubfx x5, x2, #32, #8           // Aff3 (x5 reused)
     and  x6, x2, #0xFF             // Aff0
     mov  x7, #1
     lsl  x6, x7, x6               // TargetList = 1 << Aff0
-    mov  x0, #(SGI_INTID << SGI1R_INTID_SHIFT)   // INTID[27:24], IRM=0
-    bfi  x0, x3, #SGI1R_AFF1_SHIFT, #8
-    bfi  x0, x4, #SGI1R_AFF2_SHIFT, #8
-    bfi  x0, x5, #SGI1R_AFF3_SHIFT, #8
+    mov  x1, #SGI_INTID
+    lsl  x0, x1, #24              // INTID[27:24]
+    bfi  x0, x3, #16, #8          // Aff1 -> [23:16]
+    bfi  x0, x4, #32, #8          // Aff2 -> [39:32]
+    bfi  x0, x5, #48, #8          // Aff3 -> [55:48]
     orr  x0, x0, x6               // TargetList[15:0]
     msr  ICC_SGI1R_EL1, x0
     bl   wfi_wait_irq
