@@ -544,9 +544,24 @@ gic_irq_handler_grp0:
  * test_pass(void)
  *   Result PASS: x0=0, then WFE spin (simulator reads x0=0).
  *----------------------------------------------------------*/
+
+/*----------------------------------------------------------
+ * tb_notify_ready(void)
+ *   Write 1 to TB_READY_ADDR to signal the testbench that the PE is about
+ *   to enter WFI and is ready for interrupt injection.
+ *----------------------------------------------------------*/
+        .global tb_notify_ready
+tb_notify_ready:
+        ldr     x0,=TB_READY_ADDR
+        mov     w1,#1
+        str     w1,[x0]
+        ret
+
         .global test_pass
 test_pass:
         mov     x0,#0
+        ldr     x1,=TB_RESULT_ADDR
+        str     w0,[x1]
 1:      wfe
         b       1b
 
@@ -557,6 +572,8 @@ test_pass:
         .global test_fail
 test_fail:
         mov     x0,#1
+        ldr     x1,=TB_RESULT_ADDR
+        str     w0,[x1]
 1:      wfe
         b       1b
 

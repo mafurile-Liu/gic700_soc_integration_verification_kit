@@ -25,6 +25,7 @@ test_start:
         dsb     sy
         isb
         msr     daifclr,#1
+        bl      tb_notify_ready
 wait_loop:
         wfi
         b       wait_loop

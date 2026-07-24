@@ -20,6 +20,14 @@
 #define PPI_CNTPS   29
 #define PPI_CNTHP   26
 
+/* ---- Testbench mailbox addresses (memory-mapped, for interrupt injection sync + result) ---- */
+#ifndef TB_READY_ADDR
+.equ TB_READY_ADDR, 0x10000000
+#endif
+#ifndef TB_RESULT_ADDR
+.equ TB_RESULT_ADDR, 0x10000004
+#endif
+
 #endif
 #ifndef GICR_RD_BASE
 .equ GICR_RD_BASE, 0x00000000
