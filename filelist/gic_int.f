@@ -1,3 +1,4 @@
 tb/interfaces/gic_int_if.sv
-tb/gic_int_agent.sv
-tests/gic_spi_scan_test.sv
+tb/agents/gic_int_agent_pkg.sv
+tb/sequences/gic_int_seq_pkg.sv
+tests/gic_int_test_pkg.sv
