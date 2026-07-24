@@ -1,86 +1,91 @@
-// SPI preemption (Non-secure Group 1).
-// SPI_LO (INTID 32, prio 0x80) is taken first; its handler injects SPI_HI (INTID
-// 33, prio 0x40, higher) via GICD_ISPENDRn -> preempts. Both routed to this PE.
-// BPR1=0. Verifies nested IAR order and preemption occurrence.
+/******************************************************************************
+ * File:      spi_preempt.S
+ * Purpose:   SPI preemption: LO (INTID 32, prio 0x80) is taken,
+ *            handler injects HI (INTID 33, prio 0x40) which preempts.
+ *            Verifies nested ack order and preemption occurrence.
+ ******************************************************************************/
 #include "gic_common.h"
-#define SPI_LO 32
-#define SPI_HI 33
-    .section .text, "ax", %progbits
-    .global test_start
+
+.equ LO_ID, 32
+.equ HI_ID, 33
+
+        .section .text
+        .align 4
+        .global test_start
+        .global irq_handler
+
 test_start:
-    bl gic_dist_enable_grp1ns
-    bl gicr_wake
-    bl cpu_if_init_grp1
-    msr ICC_BPR1_EL1, xzr  //  Binary Point (Group1): group/sub-priority split; lower value = more preemption
-    LOAD_GICD(x0)
-    ldr w1, [x0, #SPI_IGROUPR_OFF(SPI_LO)]
-    orr w1, w1, #SPI_BIT(SPI_LO)
-    orr w1, w1, #SPI_BIT(SPI_HI)
-    str w1, [x0, #SPI_IGROUPR_OFF(SPI_LO)]
-    ldr w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_LO)*4)]  //  SPI Group modifier
-    bic w1, w1, #SPI_BIT(SPI_LO)
-    bic w1, w1, #SPI_BIT(SPI_HI)
-    str w1, [x0, #(GICD_IGRPMODRn + SPI_BANK(SPI_LO)*4)]  //  SPI Group modifier
-    mov w1, #0x80
-    strb w1, [x0, #SPI_IPRIORITYR_OFF(SPI_LO)]
-    mov w1, #0x40
-    strb w1, [x0, #SPI_IPRIORITYR_OFF(SPI_HI)]
-    ldr w1, [x0, #SPI_ICFGR_OFF(SPI_LO)]
-    bic w1, w1, #(3 << SPI_ICFGR_SHIFT(SPI_LO))
-    bic w1, w1, #(3 << SPI_ICFGR_SHIFT(SPI_HI))
-    str w1, [x0, #SPI_ICFGR_OFF(SPI_LO)]
-    mrs x2, mpidr_el1  //  MPIDR: Aff0[7:0] Aff1[15:8] Aff2[23:16] Aff3[39:32]
-    and x3, x2, #0xFFFFFF
-    ubfx x4, x2, #32, #8
-    bfi x3, x4, #32, #8
-    str x3, [x0, #SPI_IROUTER_OFF(SPI_LO)]
-    str x3, [x0, #SPI_IROUTER_OFF(SPI_HI)]
-    ldr w1, [x0, #SPI_ISENABLER_OFF(SPI_LO)]
-    orr w1, w1, #SPI_BIT(SPI_LO)
-    orr w1, w1, #SPI_BIT(SPI_HI)
-    str w1, [x0, #SPI_ISENABLER_OFF(SPI_LO)]
-    adr x1, preempt_seen
-    str xzr, [x1]
-    mov w1, #SPI_BIT(SPI_LO)
-    str w1, [x0, #SPI_ISPENDR_OFF(SPI_LO)]  // inject LO
-    bl wfi_wait_irq
-1:  b    1b
+        bl      gic_init_grp1ns
+        msr     ICC_BPR1_EL1,xzr
+        /* config LO: group NS, prio 0x80, level, enable */
+        mov     x0,#LO_ID
+        bl      spi_set_group_ns
+        mov     x0,#LO_ID
+        mov     x1,#0x80
+        bl      spi_set_prio
+        mov     x0,#LO_ID
+        bl      spi_set_level
+        mov     x0,#LO_ID
+        bl      spi_enable
+        /* config HI: group NS, prio 0x40, level, enable */
+        mov     x0,#HI_ID
+        bl      spi_set_group_ns
+        mov     x0,#HI_ID
+        mov     x1,#0x40
+        bl      spi_set_prio
+        mov     x0,#HI_ID
+        bl      spi_set_level
+        mov     x0,#HI_ID
+        bl      spi_enable
+        /* expected = LO */
+        ldr     x1,=gic_expected_intid
+        mov     x2,#LO_ID
+        str     x2,[x1]
+        /* clear seen flag, inject LO */
+        ldr     x1,=preempt_seen
+        str     xzr,[x1]
+        mov     x0,#LO_ID
+        bl      spi_set_pend
+        dsb     sy
+        isb
+        msr     daifclr,#2
+wait_loop:
+        wfi
+        b       wait_loop
 
-    .global curr_el_spx_irq_vector
-curr_el_spx_irq_vector:
-    mrs x3, ICC_IAR1_EL1  //  Ack Group 1: read returns INTID, advances state (pending->active)
-    cmp x3, #SPI_HI
-    b.eq spi_hi
-    adr x1, preempt_lo_id
-    str x3, [x1]
-    msr daifclr, #2  //  unmask IRQ (clear PSTATE.I)
-    LOAD_GICD(x10)
-    mov w11, #SPI_BIT(SPI_HI)
-    str w11, [x10, #SPI_ISPENDR_OFF(SPI_HI)]  // inject HI -> preempts
-    dsb sy  //  Data Synchronization Barrier (make GIC writes visible)
-2:  adr  x1, preempt_seen
-    ldr x2, [x1]
-    cmp x2, #1
-    b.ne 2b
-    adr x1, preempt_lo_id
-    ldr x3, [x1]
-    msr ICC_EOIR1_EL1, x3  //  EOI Group 1: priority drop + deactivate (EOImode=0)
-    cmp x3, #SPI_LO
-    b.ne spi_preempt_fail
-    bl report_pass
-spi_preempt_fail:
-    bl report_fail
-3:  b    3b
+irq_handler:
+        bl      gic_ack_grp1
+        mov     x9,x0
+        cmp     x9,#HI_ID
+        b.eq    hi_path
+        /* LO path: save id, unmask, inject HI, wait for HI seen, eoi, check */
+        ldr     x1,=preempt_lo_id
+        str     x9,[x1]
+        msr     daifclr,#2
+        mov     x0,#HI_ID
+        bl      spi_set_pend
+        dsb     sy
+1:      ldr     x1,=preempt_seen
+        ldr     x2,[x1]
+        cmp     x2,#1
+        b.ne    1b
+        ldr     x0,=preempt_lo_id
+        ldr     x0,[x0]
+        bl      gic_eoi_grp1
+        cmp     x0,#LO_ID
+        b.ne    test_fail
+        b       test_pass
+hi_path:
+        ldr     x1,=preempt_seen
+        mov     x2,#1
+        str     x2,[x1]
+        mov     x0,x9
+        bl      gic_eoi_grp1
+        eret
 
-spi_hi:
-    adr x1, preempt_seen
-    mov x2, #1
-    str x2, [x1]
-    msr ICC_EOIR1_EL1, x3  //  EOI Group 1: priority drop + deactivate (EOImode=0)
-    eret  //  Exception Return - resume interrupted code
-
-    .balign 8
-preempt_seen:  .word 0
-    .word 0
-preempt_lo_id: .quad 0
-    .end
+        .section .data
+        .align 3
+preempt_seen:
+        .quad 0
+preempt_lo_id:
+        .quad 0

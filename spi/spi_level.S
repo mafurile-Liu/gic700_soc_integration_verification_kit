@@ -1,57 +1,32 @@
-// SPI level-sensitive (Non-secure Group 1). Testbench holds active, de-asserts
-// after IAR before EOIR.
+/******************************************************************************
+ * File:      spi_level.S
+ * Purpose:   SPI level-sensitive. Testbench de-asserts after IAR.
+ ******************************************************************************/
 #include "gic_common.h"
-#ifndef SPI_INTID
-#define SPI_INTID 32
-#endif
-    .section .text, "ax", %progbits
-    .global test_start
+
+.equ SPI_INTID, 32
+
+        .section .text
+        .align 4
+        .global test_start
+        .global irq_handler
+
 test_start:
-    bl gic_dist_enable_grp1ns
-    bl gicr_wake
-    bl cpu_if_init_grp1
-    LOAD_GICD(x0)
-    ldr w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
-    orr w1, w1, #SPI_BIT(SPI_INTID)
-    str w1, [x0, #SPI_IGROUPR_OFF(SPI_INTID)]
-    ldr w1, [x0, #(GICD_IGRPMODRn+SPI_BANK(SPI_INTID)*4)]  //  SPI Group modifier
-    bic w1, w1, #SPI_BIT(SPI_INTID)
-    str w1, [x0, #(GICD_IGRPMODRn+SPI_BANK(SPI_INTID)*4)]  //  SPI Group modifier
-    ldr w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
-    bic w1, w1, #(3<<SPI_ICFGR_SHIFT(SPI_INTID))
-    str w1, [x0, #SPI_ICFGR_OFF(SPI_INTID)]
-    mov w1, #PRIO_DEFAULT
-    strb w1, [x0, #SPI_IPRIORITYR_OFF(SPI_INTID)]
-    mrs x2, mpidr_el1  //  MPIDR: Aff0[7:0] Aff1[15:8] Aff2[23:16] Aff3[39:32]
-    and x3, x2, #0xFFFFFF
-    ubfx x4, x2, #32, #8
-    bfi x3, x4, #32, #8  // Aff3->[39:32]; IRM[31]=0 (specific PE, IHI0069 p580)
-    str x3, [x0, #SPI_IROUTER_OFF(SPI_INTID)]
-    mov w1, #SPI_BIT(SPI_INTID)
-    str w1, [x0, #SPI_ISENABLER_OFF(SPI_INTID)]
-    // ===== TESTBENCH INJECTION POINT =====
-    // The PE is about to enter WFI (next line). Your testbench must now FORCE
-    // the SPI input signal (into the SPI Collator) to its ACTIVE level, so the
-    // GIC pends the interrupt and wakes this PE.
-    //   level-sensitive : hold active, then de-assert AFTER IAR and BEFORE EOIR.
-    //   edge-triggered  : a single active pulse is enough.
-    // (No testbench? Alternative: write GICD_SETSPI_NSR with the INTID, or
-    //  write GICD_ISPENDRn to set pending directly.)
-    bl wfi_wait_irq
-    .global curr_el_spx_irq_vector
-curr_el_spx_irq_vector:
-    ldr x0, =core_sync1
-    bl core_synchronisation
-    mrs x3, ICC_IAR1_EL1  //  Ack Group 1: read returns INTID, advances state (pending->active)
-    msr ICC_EOIR1_EL1, x3  // TESTBENCH: de-assert SPI before this
-    mov w2, #SPI_INTID
-    cmp w3, w2
-    b.ne spi_fail
-1:  mrs  x21,isr_el1
-tbnz x21,#7,1b
-    bl report_pass
-spi_fail: bl report_fail
-1: b 1b
-    .balign 8
-core_sync1: .word 0
-    .end
+        bl      gic_init_grp1ns
+        ldr     x1,=gic_expected_intid
+        mov     x2,#SPI_INTID
+        str     x2,[x1]
+        mov     x0,#SPI_INTID
+        bl      spi_config_ns
+
+/*---- Testbench: force SPI input active now ----*/
+
+        dsb     sy
+        isb
+        msr     daifclr,#2
+wait_loop:
+        wfi
+        b       wait_loop
+
+irq_handler:
+        b       gic_irq_handler_grp1
