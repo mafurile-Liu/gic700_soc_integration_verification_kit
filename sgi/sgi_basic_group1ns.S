@@ -1,7 +1,7 @@
 /******************************************************************************
  * File:      sgi_basic_group1ns.S
- * Purpose:   Basic SGI delivery, group1ns. Self-injected via GICR_ISPENDR0
- *            (no testbench needed). Handler acks/EOIs via common API.
+ * Purpose:   Basic SGI delivery, NS Group 1. Self-injected via GICR_ISPENDR0.
+ *            EL3: NS Group 1 -> FIQ (aliased). Handler: IAR1/EOIR1.
  ******************************************************************************/
 #include "gic_common.h"
 
@@ -10,10 +10,10 @@
         .section .text
         .align 4
         .global test_start
-        .global curr_el_spx_irq_vector
+        .global curr_el_spx_fiq_vector
 
 test_start:
-        bl      gic_init_grp1s
+        bl      gic_init_grp1ns
         bl      gic_check_secure
         cbz     x0,test_fail
         ldr     x1,=gic_expected_intid
@@ -30,11 +30,11 @@ test_start:
         bl      ppi_set_pend
         dsb     sy
         isb
-        msr     daifclr,#2
+        msr     daifclr,#1
         bl      tb_notify_ready
 wait_loop:
         wfi
         b       wait_loop
 
-curr_el_spx_irq_vector:
-        b       gic_irq_handler_grp1
+curr_el_spx_fiq_vector:
+        b       gic_fiq_handler_grp1ns

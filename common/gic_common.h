@@ -80,6 +80,8 @@
 /* Default vector handler: ack+eoi+check gic_expected_intid+pass/fail  */
 /*   test does:  irq_handler: b gic_irq_handler_grp1                   */
 /*   void gic_irq_handler_grp1(void); gic_irq_handler_grp0(void);      */
+/*   EL3 FIQ handlers: gic_fiq_handler_grp0 (IAR0),                    */
+/*                    gic_fiq_handler_grp1ns (IAR1, NS Grp1 aliased)   */
 /*   extern uint64_t gic_expected_intid;  (test stores expected INTID) */
 
 /* Result (simulator reads x0: 0=pass, 1=fail) */

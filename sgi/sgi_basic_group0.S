@@ -1,7 +1,7 @@
 /******************************************************************************
  * File:      sgi_basic_group0.S
- * Purpose:   Basic SGI delivery, group0. Self-injected via GICR_ISPENDR0
- *            (no testbench needed). Handler acks/EOIs via common API.
+ * Purpose:   Basic SGI delivery, Group 0. Self-injected via GICR_ISPENDR0.
+ *            EL3: Group 0 -> FIQ. Handler: IAR0/EOIR0.
  ******************************************************************************/
 #include "gic_common.h"
 
@@ -10,10 +10,10 @@
         .section .text
         .align 4
         .global test_start
-        .global curr_el_spx_irq_vector
+        .global curr_el_spx_fiq_vector
 
 test_start:
-        bl      gic_init_grp1s
+        bl      gic_init_grp0
         bl      gic_check_secure
         cbz     x0,test_fail
         ldr     x1,=gic_expected_intid
@@ -30,11 +30,11 @@ test_start:
         bl      ppi_set_pend
         dsb     sy
         isb
-        msr     daifclr,#2
+        msr     daifclr,#1
         bl      tb_notify_ready
 wait_loop:
         wfi
         b       wait_loop
 
-curr_el_spx_irq_vector:
-        b       gic_irq_handler_grp1
+curr_el_spx_fiq_vector:
+        b       gic_fiq_handler_grp0
