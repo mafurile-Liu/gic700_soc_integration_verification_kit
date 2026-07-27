@@ -512,6 +512,8 @@ gic_wait_fiq_clear:
  *----------------------------------------------------------*/
         .global gic_irq_handler_grp1
 gic_irq_handler_grp1:
+        ldr     x0,=core_sync1
+        bl      core_synchronisation
         mrs     x0,ICC_IAR1_EL1
         msr     ICC_EOIR1_EL1,x0
         ldr     x1,=gic_expected_intid
@@ -527,6 +529,8 @@ gic_irq_handler_grp1:
  *----------------------------------------------------------*/
         .global gic_irq_handler_grp0
 gic_irq_handler_grp0:
+        ldr     x0,=core_sync1
+        bl      core_synchronisation
         mrs     x0,ICC_IAR0_EL1
         msr     ICC_EOIR0_EL1,x0
         ldr     x1,=gic_expected_intid
@@ -559,11 +563,9 @@ tb_notify_ready:
 
         .global test_pass
 test_pass:
-        mov     x0,#0
-        ldr     x1,=TB_RESULT_ADDR
-        str     w0,[x1]
-1:      wfe
-        b       1b
+        ldr     x1,=gic_pass_msg
+        bl      end_test
+1:      b       1b
 
 /*----------------------------------------------------------
  * test_fail(void)
@@ -571,11 +573,9 @@ test_pass:
  *----------------------------------------------------------*/
         .global test_fail
 test_fail:
-        mov     x0,#1
-        ldr     x1,=TB_RESULT_ADDR
-        str     w0,[x1]
-1:      wfe
-        b       1b
+        ldr     x1,=gic_fail_msg
+        bl      end_test
+1:      b       1b
 
 /******************************************************************************
  * Data
@@ -584,6 +584,9 @@ test_fail:
         .section .data
         .align 3
         .global gic_expected_intid
+core_sync1:
+        .quad 0
+
 gic_expected_intid:
         .quad 0
 
