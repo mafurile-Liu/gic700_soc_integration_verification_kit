@@ -3,8 +3,10 @@
  * Purpose:   Mature GIC-700 common API. Bring-up, per-interrupt config,
  *            ack/EOI, default IRQ/FIQ handler, pass/fail.
  *            New testcases call these and stay ~20 lines.
- * Framework: entry=test_start, IRQ vector=irq_handler, result=x0(0/1)+WFE spin.
- *            Matches the 样板.s convention.
+ * Framework: EL3 boot (bootcode.s). Entry=test_start.
+ *            IRQ vector=curr_el_spx_irq_vector, FIQ vector=curr_el_spx_fiq_vector.
+ *            Result=end_test (writes pass/fail message to tube 0x13000000).
+ *            Handlers call core_synchronisation (bootcode provides).
  * Build:     aarch64-none-elf-gcc -c gic_common.S -Icommon
  ******************************************************************************/
 #include "gic_common.h"
@@ -546,7 +548,7 @@ gic_irq_handler_grp0:
 
 /*----------------------------------------------------------
  * test_pass(void)
- *   Result PASS: x0=0, then WFE spin (simulator reads x0=0).
+ *   Write pass message to tube (0x13000000) via end_test, then WFI spin.
  *----------------------------------------------------------*/
 
 /*----------------------------------------------------------
@@ -569,7 +571,7 @@ test_pass:
 
 /*----------------------------------------------------------
  * test_fail(void)
- *   Result FAIL: x0=1, then WFE spin.
+ *   Write fail message to tube (0x13000000) via end_test, then WFI spin.
  *----------------------------------------------------------*/
         .global test_fail
 test_fail:
