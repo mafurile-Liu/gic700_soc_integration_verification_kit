@@ -54,10 +54,11 @@ test_start:
         ldr     x1,=gic_expected_intid
         mov     x2,#LPI_INTID
         str     x2,[x1]
+                bl      tb_notify_ready
         dsb     sy
         isb
         msr     daifclr,#2
-        bl      tb_notify_ready
+
 wait_loop:
         wfi
         b       wait_loop

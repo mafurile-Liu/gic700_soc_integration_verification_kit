@@ -22,10 +22,11 @@ test_start:
 
 /*---- Testbench: force SPI input signal (SPI Collator) active now (PE is entering WFI) ----*/
 
+                bl      tb_notify_ready
         dsb     sy
         isb
         msr     daifclr,#2
-        bl      tb_notify_ready
+
 wait_loop:
         wfi
         b       wait_loop

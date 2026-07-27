@@ -22,10 +22,11 @@ test_start:
 
 /*---- Testbench: force PPI input signal active now (PE is entering WFI) ----*/
 
+                bl      tb_notify_ready
         dsb     sy
         isb
         msr     daifclr,#1
-        bl      tb_notify_ready
+
 wait_loop:
         wfi
         b       wait_loop
