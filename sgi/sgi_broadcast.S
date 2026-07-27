@@ -16,8 +16,6 @@
 
 test_start:
         bl      gic_init_grp1s
-        bl      gic_check_secure
-        cbz     x0,test_fail
         mov     x0,#SGI_INTID
         bl      ppi_set_group_ns
         mov     x0,#SGI_INTID

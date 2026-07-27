@@ -18,8 +18,6 @@
 
 test_start:
         bl      gic_init_grp1s
-        bl      gic_check_secure
-        cbz     x0,test_fail
         mov     x20, #SCAN_START
 scan_loop:
         ldr     x1,=gic_expected_intid

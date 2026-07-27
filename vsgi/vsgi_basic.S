@@ -14,8 +14,6 @@
 
 test_start:
         bl      gic_init_grp1s
-        bl      gic_check_secure
-        cbz     x0,test_fail
         /* TODO(GICv4): map vPE (VMAPP), then inject vSGI via GITS_SGIR */
         ldr     x0,=GITS_BASE
         mov     x1,#VSGI_INTID

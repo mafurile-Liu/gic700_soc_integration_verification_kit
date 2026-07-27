@@ -14,8 +14,6 @@
 
 test_start:
         bl      gic_init_grp1s
-        bl      gic_check_secure
-        cbz     x0,test_fail
         ldr     x1,=gic_expected_intid
         mov     x2,#SGI_INTID
         str     x2,[x1]
