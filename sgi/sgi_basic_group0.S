@@ -26,11 +26,10 @@ test_start:
         bl      ppi_enable
         mov     x0,#SGI_INTID
         bl      ppi_set_pend
-                bl      tb_notify_ready
         dsb     sy
         isb
         msr     daifclr,#1
-
+        bl      tb_notify_ready
 wait_loop:
         wfi
         b       wait_loop

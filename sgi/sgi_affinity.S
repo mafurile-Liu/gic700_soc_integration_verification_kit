@@ -40,11 +40,10 @@ test_start:
         bfi     x0,x5,#48,#8
         orr     x0,x0,x6
         msr     ICC_SGI1R_EL1,x0
-                bl      tb_notify_ready
         dsb     sy
         isb
         msr     daifclr,#2
-
+        bl      tb_notify_ready
 wait_loop:
         wfi
         b       wait_loop

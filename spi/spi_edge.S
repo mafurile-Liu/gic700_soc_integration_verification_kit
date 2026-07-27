@@ -23,11 +23,10 @@ test_start:
 
 /*---- Testbench: force SPI input active now ----*/
 
-                bl      tb_notify_ready
         dsb     sy
         isb
         msr     daifclr,#2
-
+        bl      tb_notify_ready
 wait_loop:
         wfi
         b       wait_loop
