@@ -14,8 +14,8 @@
         .global curr_el_spx_irq_vector
 
 test_start:
-        bl      gic_init_grp1ns
-        bl      gic_check_ns
+        bl      gic_init_grp1s
+        bl      gic_check_secure
         cbz     x0,test_fail
         /* Property entry: enabled, priority 0x08 -> byte = (1<<7)|(0x08<<3)|0x7 */
         ldr     x0,=lpi_prop_base

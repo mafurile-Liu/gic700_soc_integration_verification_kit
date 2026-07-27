@@ -13,8 +13,8 @@
         .global curr_el_spx_irq_vector
 
 test_start:
-        bl      gic_init_grp1ns
-        bl      gic_check_ns
+        bl      gic_init_grp1s
+        bl      gic_check_secure
         cbz     x0,test_fail
         /* TODO(GICv4): map vPE (VMAPP), then inject vSGI via GITS_SGIR */
         ldr     x0,=GITS_BASE

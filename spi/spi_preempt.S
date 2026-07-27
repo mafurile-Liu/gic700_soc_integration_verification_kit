@@ -15,8 +15,8 @@
         .global curr_el_spx_irq_vector
 
 test_start:
-        bl      gic_init_grp1ns
-        bl      gic_check_ns
+        bl      gic_init_grp1s
+        bl      gic_check_secure
         cbz     x0,test_fail
         msr     ICC_BPR1_EL1,xzr
         /* config LO: group NS, prio 0x80, level, enable */
