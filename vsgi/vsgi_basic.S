@@ -17,7 +17,9 @@ test_start:
         /* TODO(GICv4): map vPE (VMAPP), then inject vSGI via GITS_SGIR */
         ldr     x0,=GITS_BASE
         mov     x1,#VSGI_INTID
-        str     x1,[x0,#GITS_SGIR]
+        movz x2,#0x20
+        movk x2,#0x2,LSL #16
+        str x1,[x0,x2]
         ldr     x1,=gic_expected_intid
         mov     x2,#VSGI_INTID
         str     x2,[x1]

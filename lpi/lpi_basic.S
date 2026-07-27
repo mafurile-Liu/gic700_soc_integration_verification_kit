@@ -49,7 +49,8 @@ test_start:
         bl      its_issue_commands
         /* trigger LPI: write EventID to GITS_TRANSLATER */
         mov     x0,#EVT_ID
-        mov     x10,#GITS_TRANSLATER
+        movz x10,#0x40
+        movk x10,#0x1,LSL #16
         str     x0,[x9,x10]
         ldr     x1,=gic_expected_intid
         mov     x2,#LPI_INTID

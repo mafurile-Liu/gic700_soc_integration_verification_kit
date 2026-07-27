@@ -17,3 +17,4 @@
 | 4 + 2×ITScount + 2×RDcount | GICDA | Alias to GICD (page after last GICR page). <br>RDcount is the total number of "internal Redistributors", which equals total number of CPU cores. <br>RDcount can change if the `GICD_RDOFFRn` registers or the `gicd_pe_off` tie-off signal removes Redistributors. In this case, the GICDA page moves to the page above the last Redistributor. |
 
 以上，然后 ITScount =1，ITSnum=0，RDcount = 6，RDnum= 0~5，基址
+以上的， 2x 是不支持 virtualization 的情况， 支持 vSGI 和 vLPI 时应该是4x。
