@@ -70,8 +70,8 @@
 #define GITS_CREADR        0x0090
 #define GITS_BASER0        0x0100   // Device table
 #define GITS_BASER1        0x0108   // Collection table
-#define GITS_TRANSLATER    0xC040   // WO: EventID -> LPI
-#define GITS_SGIR          0x0020   // WO: vSGI injection (ITS vSGI frame)
+#define GITS_TRANSLATER    0x10040    // Translation frame = Control+0x10000, reg offset 0x0040   // WO: EventID -> LPI
+#define GITS_SGIR          0x20020    // vSGI frame = Control+0x20000, reg offset 0x0020   // WO: vSGI injection (ITS vSGI frame)
 #define GITS_CTLR_Enabled      (1 << 0)
 #define GITS_CTLR_Quiescent    (1 << 31)
 

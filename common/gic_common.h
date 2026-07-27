@@ -25,7 +25,7 @@
 .equ GICR_RD_BASE, 0x10800000
 #endif
 #ifndef GITS_BASE
-.equ GITS_BASE, 0x00000000
+.equ GITS_BASE, (GICD_BASE + 0x40000)    // ITS Control frame = GICD page 4
 #endif
 .equ GICR_SGI_BASE, (GICR_RD_BASE + 0x10000)
 
