@@ -12,7 +12,7 @@
 
 /* ---- SoC base addresses (override with -DGICD_BASE=... on the cmd line) ---- */
 #ifndef GICD_BASE
-.equ GICD_BASE, 0x00000000
+.equ GICD_BASE, 0x100FF000
 
 /* ---- Common PPI INTIDs (confirm vs Cortex-A720 TRM / SoC wiring) ---- */
 #define PPI_CNTV   27
@@ -30,7 +30,7 @@
 
 #endif
 #ifndef GICR_RD_BASE
-.equ GICR_RD_BASE, 0x00000000
+.equ GICR_RD_BASE, 0x10800000
 
 /* ---- Common PPI INTIDs (confirm vs Cortex-A720 TRM / SoC wiring) ---- */
 #define PPI_CNTV   27
