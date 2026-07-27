@@ -25,8 +25,8 @@ examples/ example_makefile.md, porting_to_arm_delivery.md
 - 单字段：ppi/spi_set_group_*、set_prio、set_level/set_edge、enable、set_pend、
   route_self
 - 应答：gic_ack_grp1/grp0、gic_eoi_grp1/grp0
-- 默认 handler：gic_irq_handler_grp1/grp0（ack+eoi+校验+pass/fail）
-- 结果：test_pass（x0=0,wfe）/ test_fail（x0=1,wfe）
+- 默认 handler：gic_curr_el_spx_irq_vector_grp1/grp0（ack+eoi+校验+pass/fail）
+- 结果：test_pass（end_test）/ test_fail（end_test）
 
 ## 典型用例（~25 行）
 ~~~
@@ -43,8 +43,8 @@ test_start:
 wait_loop:
         wfi
         b       wait_loop
-irq_handler:
-        b       gic_irq_handler_grp1
+curr_el_spx_irq_vector:
+        b       gic_curr_el_spx_irq_vector_grp1
 ~~~
 
 ## 编译检查

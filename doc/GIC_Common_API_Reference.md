@@ -3,13 +3,13 @@
 common/gic_common.S 是本 kit 的成熟 GIC-700 公共 API 层。所有测试调用这些函数，
 新用例只需 ~20 行。本文逐个讲解 API。
 
-## 框架约定（样板风格）
+## 框架约定（EL3/bootcode 风格）
 - 入口：test_start（.global）。
-- 中断向量：irq_handler（Group1/IRQ）或 fiq_handler（Group0/FIQ）。测试bench
-  向量表在收到 IRQ/FIQ 时跳到这两个标签。测试写：irq_handler: b gic_irq_handler_grp1
+- 中断向量：curr_el_spx_irq_vector（Group1/IRQ）或 curr_el_spx_fiq_vector（Group0/FIQ）。测试bench
+  向量表在收到 IRQ/FIQ 时跳到这两个标签。测试写：curr_el_spx_irq_vector: b gic_curr_el_spx_irq_vector_grp1
 - 期望 INTID：测试在 WFI 前存入 gic_expected_intid（common 提供的全局变量），默认
   handler 据此校验。
-- 结果：test_pass（x0=0 + wfe 自旋）/ test_fail（x0=1 + wfe 自旋）。仿真器读 x0。
+- 结果：test_pass（end_test 自旋）/ test_fail（end_test 自旋）。仿真器读 x0。
 - 调用约定：AAPCS（参数 x0-x7），高层 config 函数会保存 x19/x30。
 
 ## 1. Bring-up（一次性完成 GICD + GICR + CPU 接口）
@@ -26,7 +26,7 @@ ARE 在 GIC-700 固定=1，不用配。
 Group 0（FIQ）：GICD_CTLR bit[0]=EnableGrp0；CPU 接口 ICC_IGRPEN0_EL1。其余同上。
 
 ### gic_init_grp1s(void)
-Secure Group 1：GICD_CTLR bit[2]=EnableGrp1S；CPU 接口 ICC_IGRPEN1。需安全态运行。
+Secure Group 1：GICD_CTLR bit[2]=EnableGrp1S；CPU 接口 ICC_IGRPEN1。EL3 (bootcode 默认安全态)。
 
 ## 2. PPI / SGI 配置（x0=INTID 0..31，GICR SGI_base 帧）
 bit = 1 << intid。
@@ -98,12 +98,12 @@ GICD_ISPENDRn：set bit 强制 pending（注入）。
 
 ## 6. 默认中断处理程序
 
-### gic_irq_handler_grp1(void)
-默认 IRQ handler，测试写 irq_handler: b gic_irq_handler_grp1 即用。流程：
+### gic_curr_el_spx_irq_vector_grp1(void)
+默认 IRQ handler，测试写 curr_el_spx_irq_vector: b gic_curr_el_spx_irq_vector_grp1 即用。流程：
 ack(IAR1) -> eoi(EOIR1) -> 比对 gic_expected_intid -> 不符 test_fail；
 相符 -> wait_irq_clear -> test_pass。
 
-### gic_irq_handler_grp0(void)
+### gic_curr_el_spx_irq_vector_grp0(void)
 FIQ 版：IAR0/EOIR0 + wait_fiq_clear。
 
 ### gic_expected_intid（全局变量，.data）
@@ -117,7 +117,7 @@ FIQ 版：IAR0/EOIR0 + wait_fiq_clear。
 ## 7. 结果
 
 ### test_pass(void) / test_fail(void)
-test_pass: x0=0, wfe 自旋。test_fail: x0=1, wfe 自旋。仿真器读 x0 判定。
+test_pass: end_test (tube 0x13000000) 自旋。test_fail: end_test (tube 0x13000000) 自旋。仿真器读 x0 判定。
 
 ## 8. 底层构建块（兼容 / 自定义测试）
 gic_init_* 内部含这些；自定义测试（如 preempt）也可单独调用：
@@ -143,10 +143,10 @@ test_start:
 wait_loop:
         wfi
         b       wait_loop
-irq_handler:
-        b       gic_irq_handler_grp1         // 默认 handler
+curr_el_spx_irq_vector:
+        b       gic_curr_el_spx_irq_vector_grp1         // 默认 handler
 ~~~
-自定义场景（抢占、特殊校验）自己写 irq_handler，用 gic_ack_grp1 /
+自定义场景（抢占、特殊校验）自己写 curr_el_spx_irq_vector，用 gic_ack_grp1 /
 gic_eoi_grp1 / test_pass / test_fail 组合。
 
 ## 参考

@@ -26,8 +26,8 @@
 | vlpi/vlpi_basic.S | 虚拟 LPI (GICv4) 骨架 |
 | vsgi/vsgi_basic.S | vSGI 直接注入 (GITS_SGIR) |
 
-组约定：Group0->FIQ（IAR0/EOIR0, fiq_handler, daifclr#1）；Group1->IRQ
-（IAR1/EOIR1, irq_handler, daifclr#2）。SPI 在 GICD 配；PPI/SGI 在 GICR SGI_base
+组约定：Group0->FIQ（IAR0/EOIR0, curr_el_spx_fiq_vector, daifclr#1）；Group1->IRQ
+（IAR1/EOIR1, curr_el_spx_irq_vector, daifclr#2）。SPI 在 GICD 配；PPI/SGI 在 GICR SGI_base
 帧（RD_base+0x10000）；API 内部运行时算 bank/bit，测试只传 INTID。
 
 详细 SPI 流程见 doc/SPI_Test_Flow_Walkthrough.md（全 7 case 逐行讲解）。

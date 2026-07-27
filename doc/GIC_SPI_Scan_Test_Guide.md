@@ -26,11 +26,11 @@ test_pass                          report summary
 
 ### 握手协议（backdoor poll，不用 AXI monitor）
 
-1. .S 写 TB_READY_ADDR(0x1000_0000) = 1，然后 WFI。
+1. .S 写 TB_READY_ADDR(0x1300_0040) = 1，然后 WFI。
 2. UVM backdoor poll TB_READY_ADDR 直到读到 1 -> 知道 PE 到了 WFI。
 3. UVM driver 注入 spi_int_in[INTID]（电平，hold 100 周期）。
 4. GIC pending -> PE 被 WFI 唤醒 -> handler：ack(IAR1) + eoi(EOIR1) +
-   比对 expected INTID + 写 TB_RESULT_ADDR(0x1000_0004) = 0(pass)/1(fail)。
+   比对 expected INTID + 写 TB_RESULT_ADDR(0x1300_0044) = 0(pass)/1(fail)。
 5. handler eret 返回 .S 循环，.S 写 TB_READY_ADDR = 0（清除，表示本轮完成）。
 6. UVM backdoor poll TB_READY_ADDR 直到读到 0 -> 读 TB_RESULT -> 判 pass/fail。
 7. 下一轮 INTID。
@@ -52,7 +52,7 @@ spi/spi_scan.S：
   (gic_ack_grp1 + gic_eoi_grp1 + 比对 + 写 TB_RESULT) -> eret ->
   清 TB_READY -> 下一轮。
 - 全部通过后 	est_pass。
-- handler 是自定义的（不用 gic_irq_handler_grp1，因为那个会 WFE 自旋结束，
+- handler 是自定义的（不用 gic_curr_el_spx_irq_vector_grp1，因为那个会 WFE 自旋结束，
   scan 需要返回循环）。
 
 ## UVM 文件

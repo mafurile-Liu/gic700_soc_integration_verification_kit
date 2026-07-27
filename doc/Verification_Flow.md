@@ -15,12 +15,12 @@
    - SPI/PPI basic：testbench force 输入信号（代码里有 /*---- Testbench ----*/ 标注）
    - SGI/preempt：自注入 ppi_set_pend / spi_set_pend（无需 testbench）
    - LPI：写 GITS_TRANSLATER
-6. Handler：irq_handler: b gic_irq_handler_grp1（默认：ack IAR1 + eoi EOIR1 +
+6. Handler：curr_el_spx_irq_vector: b gic_curr_el_spx_irq_vector_grp1（默认：ack IAR1 + eoi EOIR1 +
    比对 expected + 等 IRQ 撤销 + test_pass/test_fail）。
    抢占等自定义场景自己写 handler（用 gic_ack_grp1/gic_eoi_grp1/test_pass）。
 
-## 结果约定（样板风格）
-test_pass: mov x0,#0; wfe 循环。test_fail: mov x0,#1; wfe 循环。仿真器读 x0 判
+## 结果约定（EL3/bootcode 风格）
+test_pass: end_test (tube) 循环。test_fail: end_test (tube) 循环。仿真器读 x0 判
 pass/fail。
 
 ## Testbench 注入契约（SPI/PPI）
