@@ -23,10 +23,36 @@ IGROUPR0 0x0080 / ISENABLER0 0x0100 / ICENABLER0 0x0180 / ISPENDR0 0x0200 /
 ICPENDR0 0x0280 / ISACTIVER0 0x0300 / ICACTIVER0 0x0380 / IPRIORITYRn 0x0400 /
 ICFGR0 0x0C00 (SGI, RAO/WI) / ICFGR1 0x0C04 (PPI) / IGRPMODR0 0x0D00 / NSACR 0x0E00.
 
-## ITS
+## ITS (Control frame at GITS_BASE)
 CTLR 0x0000 / TYPER 0x0008 / CBASER 0x0080 / CWRITER 0x0088 / CREADR 0x0090 /
-BASER0 0x0100 (Device) / BASER1 0x0108 (Collection) / TRANSLATER 0xC040 /
-SGIR 0x0020 (vSGI, ITS vSGI frame).
+BASER0 0x0100 (Device table) / BASER1 0x0108 (Collection table) /
+BASER2 0x0110 (vPE table, GICv4.1).
+GITS_CTLR: [0]Enabled [31]Quiescent.
+GITS_TYPER: [1]VLPIS(GICv4) [19]PTA(1=PA,0=ProcNum).
+Translation frame (Control+0x10000): TRANSLATER 0x0040 (WO, EventID -> LPI).
+vSGI frame (Control+0x20000): GITS_SGIR 0x0020 (WO, vSGI injection, GICv4.1).
+  GITS_SGIR format: [31:0]=vINTID, [47:32]=vPEID.
+
+## GICR vLPI_base frame (RD_base + 0x20000, GICv4.1)
+VPROPBASER 0x0070 (vPE Config Table base) / VPENDBASER 0x0078 (vPE Pending Table + Valid).
+GICR_VPENDBASER: [63]Valid [15:0]=vPEID.
+
+## GICR_TYPER bits (64-bit, offset 0x0008)
+[1]VLPIS(GICv4) [4]Last(RD tuple) [7]RVPEID(GICv4.1) [23:8]Processor_Number [63:32]Affinity.
+
+## GICR stride (GICv4.1)
+Each Redistributor = 4 frames x 64KB = 256KB = 0x40000.
+RD[n] base = GICR_RD_BASE + n * 0x40000.
+
+## ITS command opcodes (byte 0 of 32-byte command, IHI0069 ch5)
+INT=0x03 SYNC=0x05 MAPD=0x08 MAPC=0x09 MAPTI=0x0A MAPI=0x0B
+INV=0x0C INVALL=0x0D
+GICv4.1: VSGI=0x23 VSYNC=0x25 VMAPP=0x41 VMAPTI=0x2A INVDB=0x2E.
+
+## Special INTIDs
+1020 = IAR0 returns this when Group 1 int pending (read IAR1 for actual).
+1021 = IAR1 returns this when Group 0 int pending (read IAR0 for actual).
+1022 = ITS maintenance interrupt. 1023 = spurious.
 
 ## CPU interface (system registers)
 ICC_IAR0/1_EL1, ICC_EOIR0/1_EL1, ICC_HPPIR0/1_EL1, ICC_RPR_EL1, ICC_PMR_EL1,

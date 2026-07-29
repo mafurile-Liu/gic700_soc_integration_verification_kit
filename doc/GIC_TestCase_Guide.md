@@ -21,10 +21,10 @@
 | sgi/sgi_basic_group0/1s/1ns.S | SGI 各组（GICR_ISPENDR0 自注入） |
 | sgi/sgi_broadcast.S | SGI 广播 (ICC_SGI1R IRM=1，多核) |
 | sgi/sgi_affinity.S | SGI 亲和定向 (ICC_SGI1R IRM=0 打给自己) |
-| lpi/lpi_basic.S | LPI via ITS (MAPD/MAPC/MAPI/INV/SYNC + GITS_TRANSLATER) |
-| lpi/lpi_priority.S | LPI 优先级（Property 表字节） |
-| vlpi/vlpi_basic.S | 虚拟 LPI (GICv4) 骨架 |
-| vsgi/vsgi_basic.S | vSGI 直接注入 (GITS_SGIR) |
+| lpi/lpi_basic.S | LPI via ITS 全流程：MAPD/MAPC/MAPTI/SYNC + LPI config + INV + INT 命令触发，LPI 专用 FIQ handler（IAR0 1020 -> IAR1） |
+| lpi/lpi_priority.S | LPI 优先级：config 表 byte = (prio & 0xFC) | enable，priority=0x40 |
+| lpi/lpi_basic.S | LPI via ITS 全流程：MAPD/MAPC/MAPTI/SYNC + LPI config + INV + INT 命令触发，LPI 专用 FIQ handler（IAR0 1020 -> IAR1） |
+| vsgi/vsgi_basic.S | vSGI (GICv4.1)：VMAPP/VSYNC + VSGI 命令配置 + GITS_SGIR 注入 |
 
 组约定：Group0->FIQ（IAR0/EOIR0, curr_el_spx_fiq_vector, daifclr#1）；Group1->IRQ
 （IAR1/EOIR1, curr_el_spx_irq_vector, daifclr#2）。SPI 在 GICD 配；PPI/SGI 在 GICR SGI_base

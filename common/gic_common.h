@@ -28,6 +28,7 @@
 .equ GITS_BASE, (GICD_BASE + 0x40000)    // ITS Control frame = GICD page 4
 #endif
 .equ GICR_SGI_BASE, (GICR_RD_BASE + 0x10000)
+.equ GICR_VLPI_BASE, (GICR_RD_BASE + 0x20000)
 
 /* ---- Common PPI INTIDs (confirm vs Cortex-A720 TRM / SoC wiring) ---- */
 #define PPI_CNTV   27
@@ -77,6 +78,70 @@
 
 /* Result: end_test writes pass/fail message to tube (0x13000000).     */
 /*   test_pass(void); test_fail(void);                                  */
+
+/* ---- LPI / ITS API (all in gic_common.S) ---- */
+/*
+ * its_init(void)
+ *   Set GITS_CBASER (cmd queue), GITS_BASER0 (device), GITS_BASER1 (collection),
+ *   then set GITS_CTLR bit[0]=Enabled. Call after gic_init_*.
+ * its_add_command(void) [internal]
+ *   Copy 32-byte its_cmd_buf to queue, advance CWRITER, poll CREADR==CWRITER.
+ * its_mapd(x0=device_id, x1=itt_addr, x2=id_bits)
+ *   MAPD: map DeviceID to ITT table. id_bits = EventID width (encoded as id_bits-1).
+ * its_mapc(x0=target_rd_procnum, x1=collection_id)
+ *   MAPC: map Collection ID to target Redistributor (PTA=0: use Processor_Number).
+ * its_mapti(x0=device_id, x1=event_id, x2=intid, x3=collection_id)
+ *   MAPTI: map EventID to specific pINTID + Collection.
+ * its_mapi(x0=device_id, x1=event_id, x2=collection_id)
+ *   MAPI: map EventID to Collection (pINTID = EventID, no separate ITT entry).
+ * its_int(x0=device_id, x1=event_id)
+ *   INT: software-trigger LPI via ITS command (alternative to GITS_TRANSLATER write).
+ * its_inv(x0=device_id, x1=event_id)
+ *   INV: invalidate cached LPI config for this DeviceID/EventID.
+ * its_invall(x0=collection_id)
+ *   INVALL: invalidate all cached LPI configs in a Collection.
+ * its_sync(x0=target_rd_procnum)
+ *   SYNC: ensure all outstanding ITS ops for target RD are complete.
+ * lpi_set_tables(x0=prop_addr, x1=pend_addr, x2=id_bits)
+ *   Write GICR_PROPBASER (config table) + GICR_PENDBASER (pending table).
+ *   id_bits >= 14 (LPI starts at 8192). Cache attrs = Device-nGnRnE.
+ * lpi_enable(void)
+ *   Set GICR_CTLR bit[0]=EnableLPIs, poll GICR_CTLR bit[3]=RWP until 0.
+ * lpi_config(x0=intid, x1=enable, x2=priority)
+ *   Write 1-byte entry in LPI Configuration Table: byte = (prio & 0xFC) | (enable & 1).
+ *   Table base = LPI_PROP_TABLE_ADDR. intid must be >= 8192.
+ * lpi_trigger(x0=event_id)
+ *   Write EventID to GITS_TRANSLATER (hardware-style LPI injection).
+ * gicr_find_rd(void) -> x0 = matching RD_base address
+ *   Scan GICR_TYPER across RD frames to find the one whose Affinity[63:32]
+ *   matches this PE's MPIDR. Returns 0xFFFFFFFF if not found.
+ * gicr_get_procnum(void) -> x0 = Processor_Number (for ITS commands when PTA=0)
+ *   Read GICR_TYPER[23:8] of the current PE's Redistributor.
+ * gic_fiq_handler_lpi(void)
+ *   LPI-specific FIQ handler: IAR0 may return 1020/1021 (Group 1 pending),
+ *   then read IAR1 for actual LPI INTID, EOI1, compare expected, pass/fail.
+ *
+ * ---- vLPI / vSGI API (GICv4.1, all in gic_common.S) ---- */
+/*
+ * vlpi_set_vpe_table(x0=vpe_conf_addr, x1=num_pages)
+ *   Write GICR_VPROPBASER (vPE Config Table base, in vLPI frame).
+ * vlpi_make_resident(x0=vpeid)
+ *   Write GICR_VPENDBASER: Valid=1, vPEID=vpeid. Makes vPE resident on this RD.
+ * vlpi_config(x0=intid, x1=enable, x2=priority)
+ *   Write 1-byte vLPI config entry: byte = (prio & 0xFC) | (enable & 1).
+ * its_vmapp(x0=vpeid, x1=target_rd_procnum, x2=conf_addr, x3=pend_addr)
+ *   VMAPP: map vPEID to target RD + vPE config/pending tables.
+ * its_vmapti(x0=device_id, x1=event_id, x2=vpeid, x3=vintid)
+ *   VMAPTI: map DeviceID/EventID to vPEID + vINTID (doorbell=1023).
+ * its_vsync(x0=vpeid)
+ *   VSYNC: sync virtual interrupt ops for vPEID.
+ * its_invdb(x0=vpeid)
+ *   INVDB: invalidate vPE config cache for vPEID.
+ * its_vsgi(x0=vpeid, x1=vintid, x2=enable, x3=priority, x4=group)
+ *   VSGI: configure virtual SGI (enable/priority/group) via ITS command.
+ * vsgi_send(x0=vintid, x1=vpeid)
+ *   Write GITS_SGIR to inject a vSGI. Format: [31:0]=vINTID, [47:32]=vPEID.
+ */
 
 /* Low-level + compat (gic_dist_enable_*, gicr_wake, cpu_if_init_*,    */
 /*   wfi_wait_*, report_pass/fail, gic_wait_rwp_gicr)                  */
