@@ -126,7 +126,6 @@ gic_init_* 内部含这些；自定义测试（如 preempt）也可单独调用�
 - gic_wait_rwp_gicr：轮询 GICR_CTLR.RWP
 - cpu_if_init_grp1/grp0：CPU 接口使能
 - wfi_wait_irq/fiq：dsb + daifclr + wfi 循环
-- report_pass/fail（兼容）：ldr msg + bl end_test（旧框架；新测试用 test_pass）
 
 ## 8.5. ITS (Interrupt Translation Service) API
 

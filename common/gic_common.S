@@ -63,8 +63,6 @@
         .global cpu_if_init_grp0
         .global wfi_wait_irq
         .global wfi_wait_fiq
-        .global report_pass
-        .global report_fail
 
 
 /*----------------------------------------------------------
