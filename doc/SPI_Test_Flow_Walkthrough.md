@@ -23,7 +23,7 @@ wait_loop:
         wfi                               // 5. 等 testbench 注入
         b       wait_loop
 curr_el_spx_irq_vector:
-        b       gic_curr_el_spx_irq_vector_grp1      // 6. 默认 handler（ack/eoi/校验/pass-fail）
+        b       gic_irq_handler_grp1      // 6. 默认 handler（ack/eoi/校验/pass-fail）
 ~~~
 
 API 做了什么（实现在 gic_common.S）：
@@ -32,7 +32,7 @@ API 做了什么（实现在 gic_common.S）：
 - spi_config_ns(x0=INTID)：运行时算 bank=INTID/32、bit=1<<(INTID%32)，做
   GICD_IGROUPR(置Group1)+IGRPMODR(清=NSGrp1)+IPRIORITYR(0x80)+ICFGR(电平)+
   IROUTER(路由到本核,IRM=0)+ISENABLER(使能)。
-- gic_curr_el_spx_irq_vector_grp1：读 ICC_IAR1(INTID, pending->active) -> 写 ICC_EOIR1
+- gic_irq_handler_grp1：读 ICC_IAR1(INTID, pending->active) -> 写 ICC_EOIR1
   (priority drop+deactivate) -> 比对 gic_expected_intid -> 等 isr_el1 bit7 清
   -> test_pass(end_test) / 不符 test_fail(end_test)。
 
@@ -75,7 +75,7 @@ dsb 保证前面的寄存器写对 GIC 可见；daifclr #2 清 PSTATE.I 开 IRQ�
 
 ~~~
 curr_el_spx_irq_vector:
-        b       gic_curr_el_spx_irq_vector_grp1
+        b       gic_irq_handler_grp1
 ~~~
 中断被取后跳到 curr_el_spx_irq_vector，转默认 handler：ack(IAR1)->eoi(EOIR1)->比对
 expected->等 IRQ 撤销->test_pass。INTID 不符则 test_fail。
@@ -86,14 +86,14 @@ expected->等 IRQ 撤销->test_pass。INTID 不符则 test_fail。
 - bl gic_init_grp0（GICD EnableGrp0、CPU IF ICC_IGRPEN0）
 - bl spi_config_grp0（GICD_IGROUPR bit=0 = Group 0）
 - msr daifclr,#1（开 FIQ，PSTATE.F）
-- 向量标签 curr_el_spx_fiq_vector: b gic_curr_el_spx_irq_vector_grp0（用 IAR0/EOIR0，isr bit6=FIQ）
+- 向量标签 curr_el_spx_fiq_vector: b gic_fiq_handler_grp0（用 IAR0/EOIR0，isr bit6=FIQ）
 
 ## 3. spi_basic_group1s.S（Secure Group 1）
 
 差异：
 - bl gic_init_grp1s（GICD EnableGrp1S）
 - bl spi_config_1s（IGROUP=1, IGRPMOD=1 = Secure Group 1）
-- 仍走 curr_el_spx_irq_vector / gic_curr_el_spx_irq_vector_grp1（Secure Group1 在安全 EL 也以 IRQ 形式）
+- 仍走 curr_el_spx_irq_vector / gic_irq_handler_grp1（Secure Group1 在安全 EL 也以 IRQ 形式）
 - EL3 (bootcode 默认安全态)
 
 ## 4. spi_priority.S（优先级覆盖）

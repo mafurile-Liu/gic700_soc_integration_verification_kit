@@ -6,7 +6,7 @@ common/gic_common.S 是本 kit 的成熟 GIC-700 公共 API 层。所有测试�
 ## 框架约定（EL3/bootcode 风格）
 - 入口：test_start（.global）。
 - 中断向量：curr_el_spx_irq_vector（Group1/IRQ）或 curr_el_spx_fiq_vector（Group0/FIQ）。测试bench
-  向量表在收到 IRQ/FIQ 时跳到这两个标签。测试写：curr_el_spx_irq_vector: b gic_curr_el_spx_irq_vector_grp1
+  向量表在收到 IRQ/FIQ 时跳到这两个标签。测试写：curr_el_spx_irq_vector: b gic_irq_handler_grp1
 - 期望 INTID：测试在 WFI 前存入 gic_expected_intid（common 提供的全局变量），默认
   handler 据此校验。
 - 结果：test_pass（end_test 自旋）/ test_fail（end_test 自旋）。仿真器读 x0。
@@ -98,12 +98,12 @@ GICD_ISPENDRn：set bit 强制 pending（注入）。
 
 ## 6. 默认中断处理程序
 
-### gic_curr_el_spx_irq_vector_grp1(void)
-默认 IRQ handler，测试写 curr_el_spx_irq_vector: b gic_curr_el_spx_irq_vector_grp1 即用。流程：
+### gic_irq_handler_grp1(void)
+默认 IRQ handler，测试写 curr_el_spx_irq_vector: b gic_irq_handler_grp1 即用。流程：
 ack(IAR1) -> eoi(EOIR1) -> 比对 gic_expected_intid -> 不符 test_fail；
 相符 -> wait_irq_clear -> test_pass。
 
-### gic_curr_el_spx_irq_vector_grp0(void)
+### gic_fiq_handler_grp0(void)
 FIQ 版：IAR0/EOIR0 + wait_fiq_clear。
 
 ### gic_expected_intid（全局变量，.data）
@@ -249,7 +249,7 @@ wait_loop:
         wfi
         b       wait_loop
 curr_el_spx_irq_vector:
-        b       gic_curr_el_spx_irq_vector_grp1         // 默认 handler
+        b       gic_irq_handler_grp1         // 默认 handler
 ~~~
 自定义场景（抢占、特殊校验）自己写 curr_el_spx_irq_vector，用 gic_ack_grp1 /
 gic_eoi_grp1 / test_pass / test_fail 组合。

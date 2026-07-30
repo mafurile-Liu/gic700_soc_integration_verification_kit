@@ -52,7 +52,7 @@ spi/spi_scan.S：
   (gic_ack_grp1 + gic_eoi_grp1 + 比对 + 写 TB_RESULT) -> eret ->
   清 TB_READY -> 下一轮。
 - 全部通过后 	est_pass。
-- handler 是自定义的（不用 gic_curr_el_spx_irq_vector_grp1，因为那个会 WFE 自旋结束，
+- handler 是自定义的（不用 gic_irq_handler_grp1，因为那个会 WFE 自旋结束，
   scan 需要返回循环）。
 
 ## UVM 文件
