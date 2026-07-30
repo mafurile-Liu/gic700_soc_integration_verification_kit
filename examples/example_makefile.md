@@ -10,7 +10,10 @@ TESTS := ppi/ppi_basic_group1ns spi/spi_basic_group1ns sgi/sgi_basic_group1ns \
 
 all: $(TESTS:=.o)
 
-%.o: %.S common/gic_common.S
+%.o: %.S common/gic_common.S common/gic_its.S
+	$(CC) $(CFLAGS) $< -Icommon -o $@
+# LPI/vLPI/vSGI tests also need gic_its.o:
+# $(LD) test.o gic_common.o gic_its.o -o test.axf
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Override SoC bases / INTIDs on the command line, e.g.:

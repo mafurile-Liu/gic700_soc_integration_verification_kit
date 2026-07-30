@@ -1,6 +1,6 @@
-# GIC Common API Reference (common/gic_common.S)
+# GIC Common API Reference (common/gic_common.S + gic_its.S)
 
-common/gic_common.S 是本 kit 的成熟 GIC-700 公共 API 层。所有测试调用这些函数，
+common/gic_common.S（核心 API）+ gic_its.S（ITS/LPI/vLPI/vSGI API）是本 kit 的公共 API 层。所有测试调用这些函数，
 新用例只需 ~20 行。本文逐个讲解 API。
 
 ## 框架约定（EL3/bootcode 风格）

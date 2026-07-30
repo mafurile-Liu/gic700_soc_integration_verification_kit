@@ -14,4 +14,4 @@
    多核：每个 PE 用自己的 GICR_RD_BASE。
 6. SPI/PPI 注入：testbench force 信号（代码标注 /*---- Testbench ----*/）；或自
    注入 spi_set_pend / ppi_set_pend。
-7. 链接：只需提供 gic_common.S + 各测试 .S，无需额外框架符号（end_test 等已不用）。
+7. 链接：提供 gic_common.S + gic_its.S + 各测试 .S，无需额外框架符号（end_test 等已不用）。

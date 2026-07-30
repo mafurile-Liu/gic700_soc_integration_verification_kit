@@ -6,7 +6,7 @@ SYS_CPU：24x Cortex-A720，GIC-700 + 6x GCI + ITS）。基于 common/ 成熟 AP
 
 ## 结构
 ~~~
-common/   gic_reg.h, gic_macros.h, gic_common.h, gic_common.S
+common/   gic_reg.h, gic_macros.h, gic_common.h, gic_common.S, gic_its.S
           （成熟 GIC API：init/config/ack/eoi/default-handler/pass-fail）
 ppi/      PPI 用例（testbench force 信号）
 spi/      SPI 用例（testbench force 信号）
@@ -19,7 +19,7 @@ doc/      Architecture_Reference, Register_Reference, Verification_Flow,
 examples/ example_makefile.md, porting_to_arm_delivery.md
 ~~~
 
-## API（common/gic_common.S）
+## API（common/gic_common.S + gic_its.S）
 - Bring-up：gic_init_grp1ns / grp1s / grp0（一次调用：GICD+GICR+CPU 接口）
 - 配置：ppi_config_ns/grp0/1s、spi_config_ns/grp0/1s（运行时算 bank/bit）
 - 单字段：ppi/spi_set_group_*、set_prio、set_level/set_edge、enable、set_pend、

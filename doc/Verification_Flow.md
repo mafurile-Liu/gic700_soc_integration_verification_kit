@@ -1,6 +1,6 @@
 # GIC Verification Flow
 
-所有测试基于 common/gic_common.S 的成熟 API，骨架统一：
+所有测试基于 common/gic_common.S（核心）+ gic_its.S（ITS/LPI）的成熟 API，骨架统一：
 
 1. Bring-up：bl gic_init_grp1ns（或 grp1s/grp0）—— 一次调用完成 GICD 组使能
    +RWP 轮询、GICR 唤醒、CPU 接口使能。

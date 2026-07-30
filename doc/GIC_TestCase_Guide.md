@@ -1,6 +1,6 @@
 # GIC Test Case Guide
 
-所有用例基于 common/gic_common.S 的成熟 API。basic 用例 ~25 行。
+所有用例基于 common/gic_common.S（核心）+ gic_its.S（ITS/LPI）的成熟 API。basic 用例 ~25 行。
 
 | File | What it verifies |
 |------|------------------|

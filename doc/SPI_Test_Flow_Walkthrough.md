@@ -1,7 +1,7 @@
 # SPI 中断测试流程详解（全部 7 个 SPI case，按实际代码逐步讲解）
 
 本文对照 spi/ 目录下 7 个 SPI 测试的实际代码，逐步讲解。所有测试都基于
-common/gic_common.S 的成熟 API，每个测试只有 ~25 行。
+common/gic_common.S 的成熟 API（SPI/PPI 测试只需核心 API；LPI/vLPI/vSGI 额外链接 gic_its.S），每个测试只有 ~25 行。
 
 ## 0. 共同模式与 API
 
@@ -26,7 +26,7 @@ curr_el_spx_irq_vector:
         b       gic_irq_handler_grp1      // 6. 默认 handler（ack/eoi/校验/pass-fail）
 ~~~
 
-API 做了什么（实现在 gic_common.S）：
+API 做了什么（实现在 gic_common.S，ITS/LPI 相关在 gic_its.S）：
 - gic_init_grp1ns：GICD_CTLR.EnableGrp1NS=1 + 轮询 RWP；GICR_WAKER 唤醒 +
   轮询 ChildrenAsleep；CPU 接口 ICC_SRE=1/ICC_PMR=0xFF/ICC_IGRPEN1=1。
 - spi_config_ns(x0=INTID)：运行时算 bank=INTID/32、bit=1<<(INTID%32)，做
