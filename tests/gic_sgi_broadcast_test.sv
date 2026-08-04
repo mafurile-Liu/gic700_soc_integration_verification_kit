@@ -9,28 +9,18 @@
 // ensures the ICC_SGI1R_EL1 write reached the GIC. The test must poll
 // each PE's ISPENDR0 until the bit is set or timeout is reached.
 //
-// The exec PE is determined by reading tube 0x13000020.
-// GICR_ISPENDR0 address: GICR_RD_BASE + pe * GICR_STRIDE + 0x10200.
+// The exec PE is determined by reading tube TB_EXEC_PE_ADDR.
+// GICR_ISPENDR0 address: GICR_RD_BASE + pe * GICR_STRIDE + SGI_BASE_OFF + ISPENDR0_OFF.
+
+`include "gic_defines.svh"
 
 class gic_sgi_broadcast_test extends gic_int_base_test;
     `uvm_component_utils(gic_sgi_broadcast_test)
 
-    // SoC parameters
-    localparam int N_PE              = 24;       // 6 clusters x 4 cores
-    localparam int CORES_PER_CLUSTER = 4;
+    // Parameters (from gic_defines.svh, matching common/*.h)
     localparam int SGI_INTID         = 0;
     localparam int READY_TIMEOUT     = 10000;    // cycles for PE ready
     localparam int POLL_TIMEOUT      = 5000;     // cycles per PE for SGI pending
-
-    // GICR address constants (match gic_common.h)
-    localparam bit [31:0] GICR_RD_BASE  = 32'h1080_0000;
-    localparam bit [31:0] GICR_STRIDE   = 32'h0004_0000;  // 256KB per RD
-    localparam bit [31:0] SGI_BASE_OFF  = 32'h0001_0000;
-    localparam bit [31:0] ISPENDR0_OFF  = 32'h0000_0200;
-
-    // Tube addresses (match gic_common.h)
-    localparam bit [31:0] TB_EXEC_PE_ADDR = 32'h1300_0020;  // exec PE affinity
-    localparam bit [31:0] TB_READY_ADDR   = 32'h1300_0040;  // PE -> TB ready
 
     // Resolved at runtime
     int sender_pe;  // PE index of the broadcast sender (exec PE)
@@ -53,11 +43,11 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
         phase.drop_objection(this);
     endtask
 
-    // Read tube 0x13000020 to find which PE is the exec PE (sender).
+    // Read tube TB_EXEC_PE_ADDR to find which PE is the exec PE (sender).
     // Tube value: [15:8]=Aff1 (cluster), [7:0]=Aff0 (core).
     task resolve_sender_pe();
         bit [31:0] affinity;
-        frontdoor_read32(TB_EXEC_PE_ADDR, affinity);
+        frontdoor_read32(`TB_EXEC_PE_ADDR, affinity);
         sender_pe = affinity_to_pe_index(affinity);
         `uvm_info("BCAST",
             $sformatf("Exec PE (sender) = PE%0d (affinity=0x%04x)",
@@ -69,7 +59,7 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
     virtual function int affinity_to_pe_index(input bit [31:0] affinity);
         int cluster = affinity[15:8];
         int core    = affinity[7:0];
-        return cluster * CORES_PER_CLUSTER + core;
+        return cluster * `CORES_PER_CLUSTER + core;
     endfunction
 
     // Wait for exec PE to signal it sent the broadcast.
@@ -78,7 +68,7 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
         int cyc = 0;
         forever begin
             @(posedge vif.clk);
-            frontdoor_read32(TB_READY_ADDR, val);
+            frontdoor_read32(`TB_READY_ADDR, val);
             if (val != 0) break;
             cyc++;
             if (cyc > READY_TIMEOUT) begin
@@ -95,13 +85,11 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
 
     // Poll GICR_ISPENDR0 for every PE except the sender.
     // Each PE is polled until SGI bit is set or POLL_TIMEOUT reached.
-    // GICD distributes SGIs asynchronously -- no fixed delay is reliable.
     task check_sgi_broadcast();
-        bit [31:0] ispendr0;
         int missing = 0;
         int checked = 0;
         bit received;
-        for (int pe = 0; pe < N_PE; pe++) begin
+        for (int pe = 0; pe < `N_PE; pe++) begin
             if (pe == sender_pe) continue;  // skip sender (IRM=1 excludes self)
             checked++;
             received = poll_pe_sgi_pending(pe);
@@ -145,7 +133,8 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
 
     // Compute GICR_ISPENDR0 address for a given PE index.
     function bit [31:0] gicr_ispendr0_addr(input int pe);
-        return GICR_RD_BASE + pe * GICR_STRIDE + SGI_BASE_OFF + ISPENDR0_OFF;
+        return `GICR_RD_BASE + pe * `GICR_STRIDE
+             + `GICR_SGI_BASE_OFF + `GICR_ISPENDR0_OFF;
     endfunction
 
     //==============================================================
