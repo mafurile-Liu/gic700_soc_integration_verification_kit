@@ -1,25 +1,26 @@
 // SGI broadcast verification test.
 // PE0 sends SGI broadcast (IRM=1, all PEs except self).
-// This test reads GICR_ISPENDR0 for every PE EXCEPT the sender (exec PE)
+// This test polls GICR_ISPENDR0 for every PE EXCEPT the sender (exec PE)
 // via frontdoor AXI to verify all other PEs received the pending SGI.
 //
-// The exec PE is determined by reading tube 0x13000020 (affinity format:
-// [15:8]=Aff1 cluster, [7:0]=Aff0 core). The testbench writes this value
-// before simulation start; bootcode reads it during setup_exception.
+// Polling with timeout (not fixed delay): the GICD distributes SGIs
+// asynchronously to each GICR. There is no CPU-side sync instruction
+// that guarantees distribution is complete. DSB SY in the .S file only
+// ensures the ICC_SGI1R_EL1 write reached the GIC. The test must poll
+// each PE's ISPENDR0 until the bit is set or timeout is reached.
 //
-// GICR_ISPENDR0 address per PE:
-//   GICR_RD_BASE + pe * GICR_STRIDE + SGI_BASE_OFFSET + 0x200
-//
-// The frontdoor_read32 task is a stub -- connect it to your AXI VIP.
+// The exec PE is determined by reading tube 0x13000020.
+// GICR_ISPENDR0 address: GICR_RD_BASE + pe * GICR_STRIDE + 0x10200.
 
 class gic_sgi_broadcast_test extends gic_int_base_test;
     `uvm_component_utils(gic_sgi_broadcast_test)
 
     // SoC parameters
-    localparam int N_PE          = 24;       // 6 clusters x 4 cores
+    localparam int N_PE              = 24;       // 6 clusters x 4 cores
     localparam int CORES_PER_CLUSTER = 4;
-    localparam int SGI_INTID     = 0;
-    localparam int READY_TIMEOUT = 10000;    // cycles
+    localparam int SGI_INTID         = 0;
+    localparam int READY_TIMEOUT     = 10000;    // cycles for PE ready
+    localparam int POLL_TIMEOUT      = 5000;     // cycles per PE for SGI pending
 
     // GICR address constants (match gic_common.h)
     localparam bit [31:0] GICR_RD_BASE  = 32'h1080_0000;
@@ -48,16 +49,12 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
         phase.raise_objection(this);
         resolve_sender_pe();
         wait_pe_ready();
-        // Allow time for GICD to distribute SGI to all GICRs
-        repeat(100) @(posedge vif.clk);
         check_sgi_broadcast();
         phase.drop_objection(this);
     endtask
 
     // Read tube 0x13000020 to find which PE is the exec PE (sender).
-    // Tube value is in affinity format: [15:8]=Aff1 (cluster), [7:0]=Aff0 (core).
-    // Convert to sequential PE index: cluster * CORES_PER_CLUSTER + core.
-    // Override affinity_to_pe_index() if your SoC has a different mapping.
+    // Tube value: [15:8]=Aff1 (cluster), [7:0]=Aff0 (core).
     task resolve_sender_pe();
         bit [31:0] affinity;
         frontdoor_read32(TB_EXEC_PE_ADDR, affinity);
@@ -69,7 +66,6 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
 
     // Convert affinity (Aff1.Aff0) to sequential PE index.
     // Default: pe = Aff1 * CORES_PER_CLUSTER + Aff0
-    // Override if your SoC maps PEs differently.
     virtual function int affinity_to_pe_index(input bit [31:0] affinity);
         int cluster = affinity[15:8];
         int core    = affinity[7:0];
@@ -93,27 +89,30 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
             end
         end
         `uvm_info("BCAST",
-            $sformatf("PE%0d signaled ready, checking GICR_ISPENDR0",
+            $sformatf("PE%0d signaled ready, polling GICR_ISPENDR0",
             sender_pe), UVM_LOW)
     endtask
 
-    // Read GICR_ISPENDR0 for every PE except the sender, check SGI bit.
+    // Poll GICR_ISPENDR0 for every PE except the sender.
+    // Each PE is polled until SGI bit is set or POLL_TIMEOUT reached.
+    // GICD distributes SGIs asynchronously -- no fixed delay is reliable.
     task check_sgi_broadcast();
         bit [31:0] ispendr0;
         int missing = 0;
         int checked = 0;
+        bit received;
         for (int pe = 0; pe < N_PE; pe++) begin
             if (pe == sender_pe) continue;  // skip sender (IRM=1 excludes self)
             checked++;
-            frontdoor_read32(gicr_ispendr0_addr(pe), ispendr0);
-            if (ispendr0 & (1 << SGI_INTID)) begin
+            received = poll_pe_sgi_pending(pe);
+            if (received) begin
                 `uvm_info("BCAST_CHK",
-                    $sformatf("PE%0d: SGI %0d pending OK (ISPENDR0=0x%08x)",
-                    pe, SGI_INTID, ispendr0), UVM_HIGH)
+                    $sformatf("PE%0d: SGI %0d pending OK", pe, SGI_INTID),
+                    UVM_HIGH)
             end else begin
                 `uvm_error("BCAST_CHK",
-                    $sformatf("PE%0d: SGI %0d NOT pending (ISPENDR0=0x%08x)",
-                    pe, SGI_INTID, ispendr0))
+                    $sformatf("PE%0d: SGI %0d NOT pending after %0d cycles",
+                    pe, SGI_INTID, POLL_TIMEOUT))
                 missing++;
             end
         end
@@ -125,6 +124,23 @@ class gic_sgi_broadcast_test extends gic_int_base_test;
             `uvm_error("RESULT",
                 $sformatf("FAIL: %0d/%0d PEs missing SGI %0d broadcast (sender=PE%0d)",
                 missing, checked, SGI_INTID, sender_pe))
+    endtask
+
+    // Poll a single PE's GICR_ISPENDR0 until SGI bit is set or timeout.
+    task poll_pe_sgi_pending(input int pe, output bit received);
+        bit [31:0] ispendr0;
+        int cyc = 0;
+        received = 1'b0;
+        forever begin
+            frontdoor_read32(gicr_ispendr0_addr(pe), ispendr0);
+            if (ispendr0 & (1 << SGI_INTID)) begin
+                received = 1'b1;
+                return;
+            end
+            cyc++;
+            if (cyc > POLL_TIMEOUT) return;
+            @(posedge vif.clk);
+        end
     endtask
 
     // Compute GICR_ISPENDR0 address for a given PE index.
