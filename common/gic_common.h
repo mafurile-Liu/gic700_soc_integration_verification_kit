@@ -101,6 +101,14 @@
  * its_invall(x0=collection_id)
  *   INVALL: invalidate all cached LPI configs in a Collection.
  * its_sync(x0=target_rd_procnum)
+ * its_movi(x0=device_id, x1=event_id, x2=new_collection_id)
+ *   MOVI: move an LPI from one Collection to another.
+ * its_clear(x0=device_id, x1=event_id)
+ *   CLEAR: clear pending state of an LPI (via ITS command).
+ * its_movall(x0=src_rd_procnum, x1=dst_rd_procnum)
+ *   MOVALL: move all pending LPIs from source RD to destination RD.
+ * its_discard(x0=device_id, x1=event_id)
+ *   DISCARD: clear pending + remove ITT entry for an LPI.
  *   SYNC: ensure all outstanding ITS ops for target RD are complete.
  * lpi_set_tables(x0=prop_addr, x1=pend_addr, x2=id_bits)
  *   Write GICR_PROPBASER (config table) + GICR_PENDBASER (pending table).
@@ -136,6 +144,14 @@
  * its_vsync(x0=vpeid)
  *   VSYNC: sync virtual interrupt ops for vPEID.
  * its_invdb(x0=vpeid)
+ * its_vmovi(x0=device_id, x1=event_id, x2=dst_vpeid)
+ *   VMOVI: move a vLPI to a different vPE.
+ * its_vmovp(x0=vpeid, x1=dst_rd_procnum)
+ *   VMOVP: move a vPE to a different RD.
+ * its_vmapi(x0=device_id, x1=event_id, x2=vpeid)
+ *   VMAPI: map EventID to vPEID (vINTID = EventID).
+ * its_vinvall(void)
+ *   VINVALL: invalidate all vPE configs on this ITS.
  *   INVDB: invalidate vPE config cache for vPEID.
  * its_vsgi(x0=vpeid, x1=vintid, x2=enable, x3=priority, x4=group)
  *   VSGI: configure virtual SGI (enable/priority/group) via ITS command.

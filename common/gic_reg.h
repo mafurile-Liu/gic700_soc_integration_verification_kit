@@ -101,10 +101,14 @@
 #define ITS_CMD_MAPI      0x0B   // MAPI:   map EventID -> Collection (pINTID=EventID)
 #define ITS_CMD_INV       0x0C   // INV:    invalidate LPI config cache for DeviceID/EventID
 #define ITS_CMD_INVALL    0x0D   // INVALL: invalidate all LPIs in a Collection
+#define ITS_CMD_MOVALL    0x0E   // MOVALL: move all pending LPIs from one RD to another
+#define ITS_CMD_DISCARD   0x0F   // DISCARD: clear pending + remove ITT entry for an LPI
+#define ITS_CMD_MOVI      0x01   // MOVI: move an LPI to a different Collection
+#define ITS_CMD_CLEAR     0x04   // CLEAR: clear pending state of an LPI
 // GICv4.1 virtual commands
 #define ITS_CMD_VSGI      0x23   // VSGI:   configure+inject virtual SGI
 #define ITS_CMD_VSYNC     0x25   // VSYNC:  sync virtual interrupt operations
-#define ITS_CMD_VMAPP     0x41   // VMAPP:  map vPEID -> RD + vPE tables
+#define ITS_CMD_VMAPP     0x29   // VMAPP:  map vPEID -> RD + vPE tables
 #define ITS_CMD_VMAPTI    0x2A   // VMAPTI: map DeviceID/EventID -> vPEID + vINTID
 #define ITS_CMD_INVDB     0x2E   // INVDB:  invalidate vPE configuration cache
 

@@ -45,7 +45,15 @@
         .global its_vmapp
         .global its_vmapti
         .global its_vsync
+        .global its_movi
+        .global its_clear
+        .global its_movall
+        .global its_discard
         .global its_invdb
+        .global its_vmovi
+        .global its_vmovp
+        .global its_vmapi
+        .global its_vinvall
         .global its_vsgi
         .global vsgi_send
         .global its_cmd_buf
@@ -374,6 +382,16 @@ lpi_enable:
  *   Byte format: bit[0] = Enable, bits[7:2] = Priority.
  *     priority must be a multiple of 4 (0x00 highest, 0xFC lowest).
  *     byte = (priority & 0xFC) | (enable & 1)
+ *
+ *   DS BIT NOTE (GICD_CTLR.DS): When DS=0 (security enabled, our default
+ *   at EL3 Secure boot), the GIC internally remaps LPI priority:
+ *     gic_prio = ((config_byte & 0xFC) >> 1) | 0x80
+ *   This means the value written to the config table is NOT the same as
+ *   the priority the GIC uses for PMR comparison. For example:
+ *     config byte 0x40 -> gic_prio = ((0x40>>1)|0x80) = 0xA0
+ *   To achieve a desired GIC-internal priority P when DS=0:
+ *     config_byte = ((P & 0x7F) << 1) & 0xFC | (enable & 1)
+ *   When DS=1, config_byte = (P & 0xFC) | (enable & 1) (direct).
  *----------------------------------------------------------*/
 lpi_config:
         and     w2,w2,#0xFC                     /* priority bits [7:2] */
