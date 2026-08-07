@@ -98,13 +98,22 @@ gic_init_grp1ns:
         str     w1,[x0,#GICR_WAKER]
 2:      ldr     w1,[x0,#GICR_WAKER]
         tbnz    w1,#2,2b
+        /* ICC_SRE_EL3: enable system register access + disable legacy bypass.
+           Bit0=SRE, Bit1=DFB (Disable FIQ Bypass), Bit2=DIB (Disable IRQ Bypass).
+           GIC-700 may have these RAO, but set explicitly for portability (ref: TF-A). */
+        mrs     x0,ICC_SRE_EL3
+        orr     x0,x0,#0x7              /* SRE | DFB | DIB */
+        msr     ICC_SRE_EL3,x0
+        isb
+        /* ICC_SRE_EL1: same bits, enable system register access at EL1 */
         mrs     x0,ICC_SRE_EL1
-        orr     x0,x0,#1
+        orr     x0,x0,#0x7
         msr     ICC_SRE_EL1,x0
         mov     x0,#0xff
         msr     ICC_PMR_EL1,x0
         mov     x0,#1
         msr     ICC_IGRPEN1_EL1,x0
+        dsb     sy
         isb
         ret
 
@@ -127,13 +136,20 @@ gic_init_grp0:
         str     w1,[x0,#GICR_WAKER]
 2:      ldr     w1,[x0,#GICR_WAKER]
         tbnz    w1,#2,2b
+        /* ICC_SRE_EL3: enable system register access + disable legacy bypass.
+           Bit0=SRE, Bit1=DFB, Bit2=DIB. Set explicitly (ref: TF-A gicv3_cpuif_enable). */
+        mrs     x0,ICC_SRE_EL3
+        orr     x0,x0,#0x7              /* SRE | DFB | DIB */
+        msr     ICC_SRE_EL3,x0
+        isb
         mrs     x0,ICC_SRE_EL1
-        orr     x0,x0,#1
+        orr     x0,x0,#0x7
         msr     ICC_SRE_EL1,x0
         mov     x0,#0xff
         msr     ICC_PMR_EL1,x0
         mov     x0,#1
         msr     ICC_IGRPEN0_EL1,x0
+        dsb     sy
         isb
         ret
 
@@ -664,13 +680,22 @@ gic_init_grp1s:
         str     w1,[x0,#GICR_WAKER]
 2:      ldr     w1,[x0,#GICR_WAKER]
         tbnz    w1,#2,2b
+        /* ICC_SRE_EL3: enable system register access + disable legacy bypass.
+           Bit0=SRE, Bit1=DFB (Disable FIQ Bypass), Bit2=DIB (Disable IRQ Bypass).
+           GIC-700 may have these RAO, but set explicitly for portability (ref: TF-A). */
+        mrs     x0,ICC_SRE_EL3
+        orr     x0,x0,#0x7              /* SRE | DFB | DIB */
+        msr     ICC_SRE_EL3,x0
+        isb
+        /* ICC_SRE_EL1: same bits, enable system register access at EL1 */
         mrs     x0,ICC_SRE_EL1
-        orr     x0,x0,#1
+        orr     x0,x0,#0x7
         msr     ICC_SRE_EL1,x0
         mov     x0,#0xff
         msr     ICC_PMR_EL1,x0
         mov     x0,#1
         msr     ICC_IGRPEN1_EL1,x0
+        dsb     sy
         isb
         ret
 
@@ -822,13 +847,22 @@ gic_wait_rwp_gicr:
  *   ICC_SRE=1, ICC_PMR=0xFF, ICC_IGRPEN1=1.
  *----------------------------------------------------------*/
 cpu_if_init_grp1:
+        /* ICC_SRE_EL3: enable system register access + disable legacy bypass.
+           Bit0=SRE, Bit1=DFB (Disable FIQ Bypass), Bit2=DIB (Disable IRQ Bypass).
+           GIC-700 may have these RAO, but set explicitly for portability (ref: TF-A). */
+        mrs     x0,ICC_SRE_EL3
+        orr     x0,x0,#0x7              /* SRE | DFB | DIB */
+        msr     ICC_SRE_EL3,x0
+        isb
+        /* ICC_SRE_EL1: same bits, enable system register access at EL1 */
         mrs     x0,ICC_SRE_EL1
-        orr     x0,x0,#1
+        orr     x0,x0,#0x7
         msr     ICC_SRE_EL1,x0
         mov     x0,#0xff
         msr     ICC_PMR_EL1,x0
         mov     x0,#1
         msr     ICC_IGRPEN1_EL1,x0
+        dsb     sy
         isb
         ret
 
@@ -837,13 +871,20 @@ cpu_if_init_grp1:
  *   ICC_SRE=1, ICC_PMR=0xFF, ICC_IGRPEN0=1.
  *----------------------------------------------------------*/
 cpu_if_init_grp0:
+        /* ICC_SRE_EL3: enable system register access + disable legacy bypass.
+           Bit0=SRE, Bit1=DFB, Bit2=DIB. Set explicitly (ref: TF-A gicv3_cpuif_enable). */
+        mrs     x0,ICC_SRE_EL3
+        orr     x0,x0,#0x7              /* SRE | DFB | DIB */
+        msr     ICC_SRE_EL3,x0
+        isb
         mrs     x0,ICC_SRE_EL1
-        orr     x0,x0,#1
+        orr     x0,x0,#0x7
         msr     ICC_SRE_EL1,x0
         mov     x0,#0xff
         msr     ICC_PMR_EL1,x0
         mov     x0,#1
         msr     ICC_IGRPEN0_EL1,x0
+        dsb     sy
         isb
         ret
 
