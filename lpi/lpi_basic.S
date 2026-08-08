@@ -100,6 +100,7 @@ test_start:
         dsb     sy
         isb
         msr     daifclr,#3                      /* unmask IRQ + FIQ */
+        mov     x0,#1   /* edge-triggered */
         bl      tb_notify_ready                /* signal testbench: PE is ready */
 
         /* ---- 8) Trigger LPI via ITS INT command (software trigger) ---- */

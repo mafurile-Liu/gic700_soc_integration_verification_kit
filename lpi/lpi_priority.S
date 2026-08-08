@@ -86,6 +86,7 @@ test_start:
         dsb     sy
         isb
         msr     daifclr,#3
+        mov     x0,#1   /* edge-triggered */
         bl      tb_notify_ready
 
         /* ---- 8) Trigger LPI ---- */

@@ -24,6 +24,7 @@ scan_loop:
         str     x20,[x1]
         mov     x0, x20
         bl      spi_config_1s
+        mov     x0,#2   /* level-triggered */
         bl      tb_notify_ready
         dsb     sy
         isb

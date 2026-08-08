@@ -39,9 +39,10 @@ class gic_int_driver extends uvm_driver #(gic_int_item);
     endtask
 
     task drive_item(gic_int_item req);
+        bit [31:0] trig_type;
         bit [31:0] flag;
         if (req.direction == gic_int_item::DIR_OUTPUT) return;
-        wait_pe_ready();
+        wait_pe_ready(trig_type);
 
         // Assert interrupt signal
         if (req.int_type == gic_int_item::SPI)
@@ -49,7 +50,7 @@ class gic_int_driver extends uvm_driver #(gic_int_item);
         else
             vif.ppi_int[req.pe_id][req.intid] = 1'b1;
 
-        if (req.trig == gic_int_item::TRIG_EDGE) begin
+        if (trig_type == 32'd1) begin
             // Edge: pulse 1 cycle, then de-assert immediately
             @(posedge vif.clk);
             if (req.int_type == gic_int_item::SPI)
@@ -61,7 +62,7 @@ class gic_int_driver extends uvm_driver #(gic_int_item);
         // Wait for PE to acknowledge (flag set by tb_notify_int_taken)
         wait_int_ack();
 
-        if (req.trig == gic_int_item::TRIG_LEVEL) begin
+        if (trig_type == 32'd2) begin
             // Level: de-assert now that PE has acked
             if (req.int_type == gic_int_item::SPI)
                 vif.spi_int_in[req.intid] = 1'b0;
@@ -69,17 +70,16 @@ class gic_int_driver extends uvm_driver #(gic_int_item);
                 vif.ppi_int[req.pe_id][req.intid] = 1'b0;
         end
 
-        // Clear flag: signals PE to proceed with EOI
+        // Clear flag: cleanup for next injection
         frontdoor_write32(`TB_INT_ASSERT_ADDR, 32'h0);
     endtask
 
-    task wait_pe_ready();
-        bit [31:0] val;
+    task wait_pe_ready(output bit [31:0] trig_type);
         int cyc = 0;
         forever begin
             @(posedge vif.clk);
-            frontdoor_read32(`TB_READY_ADDR, val);
-            if (val != 0) break;
+            frontdoor_read32(`TB_READY_ADDR, trig_type);
+            if (trig_type != 0) break;
             cyc++;
             if (cyc > ready_timeout) begin
                 `uvm_fatal("TIMEOUT",
@@ -87,6 +87,8 @@ class gic_int_driver extends uvm_driver #(gic_int_item);
                 return;
             end
         end
+        // trig_type: 1=edge, 2=level
+        `uvm_info("DRV", $sformatf("PE ready, trigger type=%0d", trig_type), UVM_HIGH)
     endtask
 
     task wait_int_ack();

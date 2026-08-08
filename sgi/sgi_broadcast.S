@@ -40,6 +40,7 @@ test_start:
         msr     ICC_SGI1R_EL1,x0
         dsb     sy
         /* Signal testbench: broadcast sent, ready for GICR_ISPENDR0 check */
+        mov     x0,#1   /* edge-triggered */
         bl      tb_notify_ready
         /* Wait for testbench to finish checking (it sets pass/fail) */
 wait_loop:

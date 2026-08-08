@@ -26,6 +26,7 @@ test_start:
         dsb     sy
         isb
         msr     daifclr,#1
+        mov     x0,#2   /* level-triggered */
         bl      tb_notify_ready
 wait_loop:
         wfi

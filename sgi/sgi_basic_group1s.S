@@ -29,6 +29,7 @@ test_start:
         dsb     sy
         isb
         msr     daifclr,#2
+        mov     x0,#1   /* edge-triggered */
         bl      tb_notify_ready
 wait_loop:
         wfi

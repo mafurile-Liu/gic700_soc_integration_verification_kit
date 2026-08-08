@@ -600,12 +600,20 @@ gic_fiq_handler_grp0:
         ldr     x0,=core_sync1
         bl      core_synchronisation
         mrs     x0,ICC_IAR0_EL1                 /* Group 0: acknowledge via IAR0 */
-        msr     ICC_EOIR0_EL1,x0                /* priority drop + deactivate */
+        mov     x9,x0                           /* save INTID */
+        bl      tb_notify_int_taken             /* signal SV: interrupt acknowledged */
+        stp     x9,x30,[sp,#-16]!
+        mov     x0,x9
+        bl      gic_user_handler                /* C callback (weak) */
+        ldp     x9,x30,[sp],#16
+        mov     x0,x9
+        bl      tb_wait_int_deasserted          /* poll pending reg until level low */
+        msr     ICC_EOIR0_EL1,x9                /* EOI: priority drop + deactivate */
         ldr     x1,=gic_expected_intid
         ldr     x2,[x1]
-        cmp     x0,x2
+        cmp     x9,x2
         b.ne    test_fail
-        bl      gic_wait_fiq_clear              /* poll ISR bit[6] (FIQ) until 0 */
+        bl      gic_wait_fiq_clear
         b       test_pass
 
 /*----------------------------------------------------------
@@ -623,12 +631,20 @@ gic_fiq_handler_grp1ns:
         ldr     x0,=core_sync1
         bl      core_synchronisation
         mrs     x0,ICC_IAR1_EL1                 /* NS Group 1: acknowledge via IAR1 (aliased) */
-        msr     ICC_EOIR1_EL1,x0                /* priority drop + deactivate */
+        mov     x9,x0                           /* save INTID */
+        bl      tb_notify_int_taken             /* signal SV: interrupt acknowledged */
+        stp     x9,x30,[sp,#-16]!
+        mov     x0,x9
+        bl      gic_user_handler                /* C callback (weak) */
+        ldp     x9,x30,[sp],#16
+        mov     x0,x9
+        bl      tb_wait_int_deasserted          /* poll pending reg until level low */
+        msr     ICC_EOIR1_EL1,x9                /* EOI: priority drop + deactivate */
         ldr     x1,=gic_expected_intid
         ldr     x2,[x1]
-        cmp     x0,x2
+        cmp     x9,x2
         b.ne    test_fail
-        bl      gic_wait_fiq_clear              /* NS Group 1 signals as FIQ at EL3 */
+        bl      gic_wait_fiq_clear
         b       test_pass
 
 /******************************************************************************
