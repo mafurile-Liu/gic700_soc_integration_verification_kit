@@ -1,7 +1,9 @@
 /******************************************************************************
  * File:      common/soc_test_level.s
  * Purpose:   Generic SoC test template (level-triggered).
- *            Configures SPI 32 as level-triggered Secure Group 1.
+ *            Configures ALL SPIs (INTID 32..991) as level-triggered
+ *            Secure Group 1, then WFI. Testbench can inject any SPI.
+ *
  *            Provides weak hooks for user customization:
  *              - test_start: override with your own .S test
  *              - user_int_test: C function called between tb_notify_ready
@@ -9,17 +11,17 @@
  *
  * Flow:
  *   1. gic_init_grp1s
- *   2. spi_config_1s (SPI 32, level, group 1s)
- *   3. set expected INTID
- *   4. tb_notify_ready(2)  [2=level]
- *   5. bl user_int_test (weak, NOP if undefined)
- *   6. DSB + ISB + daifclr + WFI
+ *   2. Loop: spi_config_1s for all 960 SPIs (32..991)
+ *   3. tb_notify_ready(2)  [2=level]
+ *   4. bl user_int_test (weak, NOP if undefined)
+ *   5. DSB + ISB + daifclr + WFI
  *
  * For edge-triggered tests, use soc_test_edge.s instead.
  ******************************************************************************/
 #include "gic_common.h"
 
-.equ SOC_INTID, 32
+.equ SCAN_START, 32
+.equ SCAN_END,   991
 
         .section .text
         .align 4
@@ -29,16 +31,21 @@
 test_start:
         bl      gic_init_grp1s
 
-        /* Configure SPI 32: Secure Group 1, level, route self, enable */
-        mov     x0,#SOC_INTID
+        /* Configure ALL SPIs (32..991) as Secure Group 1, level, route self, enable */
+        mov     x20,#SCAN_START
+config_loop:
+        mov     x0,x20
         bl      spi_config_1s
+        add     x20,x20,#1
+        cmp     x20,#SCAN_END
+        b.le    config_loop
 
-        /* Set expected INTID */
+        /* Set expected INTID to 0 (TB will write actual expected INTID
+           to TB_EXPECTED_INTID_ADDR before injecting) */
         ldr     x1,=gic_expected_intid
-        mov     x2,#SOC_INTID
-        str     x2,[x1]
+        str     xzr,[x1]
 
-        /* Notify testbench: level-triggered (2) */
+        /* Notify testbench: level-triggered (2), all SPIs configured */
         mov     x0,#2
         bl      tb_notify_ready
 

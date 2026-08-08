@@ -1,7 +1,9 @@
 /******************************************************************************
  * File:      common/soc_test_edge.s
  * Purpose:   Generic SoC test template (edge-triggered).
- *            Configures SPI 32 as edge-triggered Secure Group 1.
+ *            Configures ALL SPIs (INTID 32..991) as edge-triggered
+ *            Secure Group 1, then WFI. Testbench can inject any SPI.
+ *
  *            Provides weak hooks for user customization:
  *              - test_start: override with your own .S test
  *              - user_int_test: C function called between tb_notify_ready
@@ -9,17 +11,17 @@
  *
  * Flow:
  *   1. gic_init_grp1s
- *   2. spi_set_group_1s + spi_set_edge + spi_set_prio + spi_route_self + spi_enable
- *   3. set expected INTID
- *   4. tb_notify_ready(1)  [1=edge]
- *   5. bl user_int_test (weak, NOP if undefined)
- *   6. DSB + ISB + daifclr + WFI
+ *   2. Loop: set group + edge + prio + route + enable for all 960 SPIs
+ *   3. tb_notify_ready(1)  [1=edge]
+ *   4. bl user_int_test (weak, NOP if undefined)
+ *   5. DSB + ISB + daifclr + WFI
  *
  * For level-triggered tests, use soc_test_level.s instead.
  ******************************************************************************/
 #include "gic_common.h"
 
-.equ SOC_INTID, 32
+.equ SCAN_START, 32
+.equ SCAN_END,   991
 
         .section .text
         .align 4
@@ -29,25 +31,30 @@
 test_start:
         bl      gic_init_grp1s
 
-        /* Configure SPI 32: Secure Group 1, edge-triggered, route self */
-        mov     x0,#SOC_INTID
+        /* Configure ALL SPIs (32..991) as Secure Group 1, edge, route self, enable */
+        mov     x20,#SCAN_START
+config_loop:
+        mov     x0,x20
         bl      spi_set_group_1s
-        mov     x0,#SOC_INTID
+        mov     x0,x20
         mov     x1,#0x80
         bl      spi_set_prio
-        mov     x0,#SOC_INTID
+        mov     x0,x20
         bl      spi_set_edge
-        mov     x0,#SOC_INTID
+        mov     x0,x20
         bl      spi_route_self
-        mov     x0,#SOC_INTID
+        mov     x0,x20
         bl      spi_enable
+        add     x20,x20,#1
+        cmp     x20,#SCAN_END
+        b.le    config_loop
 
-        /* Set expected INTID */
+        /* Set expected INTID to 0 (TB will write actual expected INTID
+           to TB_EXPECTED_INTID_ADDR before injecting) */
         ldr     x1,=gic_expected_intid
-        mov     x2,#SOC_INTID
-        str     x2,[x1]
+        str     xzr,[x1]
 
-        /* Notify testbench: edge-triggered (1) */
+        /* Notify testbench: edge-triggered (1), all SPIs configured */
         mov     x0,#1
         bl      tb_notify_ready
 
