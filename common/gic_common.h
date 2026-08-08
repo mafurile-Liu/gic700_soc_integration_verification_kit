@@ -45,6 +45,7 @@
 .equ TB_RESULT_ADDR, (TB_BASE + 0x44)
 #endif
 .equ TB_EXPECTED_INTID_ADDR, (TB_BASE + 0x48)
+.equ TB_INT_ASSERT_ADDR, (TB_BASE + 0x4C)
 
 /* ---- API (args in x0-x7, AAPCS). All in gic_common.S ---- */
 

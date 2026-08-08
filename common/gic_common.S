@@ -64,6 +64,8 @@
         .global wfi_wait_irq
         .global wfi_wait_fiq
         .weak   gic_user_handler
+        .global tb_notify_int_taken
+        .global tb_wait_int_deasserted
 
 
 /*----------------------------------------------------------
@@ -562,17 +564,27 @@ gic_wait_fiq_clear:
 gic_irq_handler_grp1:
         ldr     x0,=core_sync1
         bl      core_synchronisation
-        mrs     x0,ICC_IAR1_EL1                 /* ack: x0 = INTID */
-        msr     ICC_EOIR1_EL1,x0                /* eoi: priority drop + deactivate */
+        mrs     x0,ICC_IAR1_EL1                 /* ack: x0 = INTID (pending -> active) */
+        mov     x9,x0                           /* save INTID */
+        /* Signal SV driver: interrupt has been acknowledged.
+           For level-triggered: SV de-asserts the level signal when it sees this flag.
+           For edge-triggered: SV clears the flag (signal already low).
+           For software-injected (no SV): nobody clears flag, timeout handles it. */
+        bl      tb_notify_int_taken
         /* C callback hook: gic_user_handler(intid).
-           Weak symbol -> NOP if not linked. Save x0 (INTID) + x30 (LR) on stack. */
-        stp     x0,x30,[sp,#-16]!
+           Weak symbol -> NOP if not linked. */
+        stp     x9,x30,[sp,#-16]!
+        mov     x0,x9
         bl      gic_user_handler
-        ldp     x0,x30,[sp],#16                 /* restore INTID and LR */
-        /* Default: compare actual INTID to expected */
+        ldp     x9,x30,[sp],#16
+        /* Wait for SV to de-assert level and clear flag.
+           Blocks until flag=0 or timeout. Ensures level is low before EOI,
+           preventing re-pending of level-triggered interrupts. */
+        bl      tb_wait_int_deasserted
+        msr     ICC_EOIR1_EL1,x9                /* EOI: priority drop + deactivate */
         ldr     x1,=gic_expected_intid
         ldr     x2,[x1]
-        cmp     x0,x2
+        cmp     x9,x2
         b.ne    test_fail
         bl      gic_wait_irq_clear
         b       test_pass
@@ -622,6 +634,39 @@ gic_fiq_handler_grp1ns:
 /******************************************************************************
  * Result: x0=0 pass / x0=1 fail, then WFE spin (simulator reads x0)
  ******************************************************************************/
+
+/*----------------------------------------------------------
+ * tb_notify_int_taken(void)
+ *   Write 1 to TB_INT_ASSERT_ADDR. Signals the SV driver that the PE
+ *   has acknowledged the interrupt (IAR read done). For level-triggered
+ *   interrupts, the SV driver de-asserts the level signal upon seeing
+ *   this flag, then clears it.
+ *----------------------------------------------------------*/
+tb_notify_int_taken:
+        ldr     x0,=TB_INT_ASSERT_ADDR
+        mov     w1,#1
+        str     w1,[x0]
+        dsb     sy
+        ret
+
+/*----------------------------------------------------------
+ * tb_wait_int_deasserted(void)
+ *   Poll TB_INT_ASSERT_ADDR until it reads 0 (SV has de-asserted level
+ *   and cleared the flag). Timeout after 10000 cycles to handle
+ *   software-injected interrupts (no SV driver involved).
+ *
+ *   This must be called BEFORE EOI for level-triggered interrupts,
+ *   to ensure the level signal is low when EOI deactivates the
+ *   interrupt. Otherwise the GIC may re-pend the interrupt.
+ *----------------------------------------------------------*/
+tb_wait_int_deasserted:
+        ldr     x0,=TB_INT_ASSERT_ADDR
+        mov     x1,#10000                    /* timeout */
+1:      ldr     w2,[x0]
+        cbz     w2,2f                        /* flag cleared -> done */
+        subs    x1,x1,#1
+        b.ne    1b
+2:      ret
 
 /*----------------------------------------------------------
  * test_pass(void)
