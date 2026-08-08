@@ -695,9 +695,8 @@ tb_wait_int_deasserted:
  *   to enter WFI and is ready for interrupt injection.
  *----------------------------------------------------------*/
 tb_notify_ready:
-        ldr     x0,=TB_READY_ADDR
-        mov     w1,#1
-        str     w1,[x0]
+        ldr     x1,=TB_READY_ADDR
+        str     w0,[x1]                        /* store trigger type: 1=edge, 2=level */
         ret
 
 test_pass:
