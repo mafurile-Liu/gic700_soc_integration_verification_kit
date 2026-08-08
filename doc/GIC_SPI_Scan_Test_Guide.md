@@ -26,11 +26,11 @@ test_pass                          report summary
 
 ### 握手协议（backdoor poll，不用 AXI monitor）
 
-1. .S 写 TB_READY_ADDR(0x1300_0040) = 1，然后 WFI。
+1. .S 写 TB_READY_ADDR(0x274F_0540) = 1，然后 WFI。
 2. UVM backdoor poll TB_READY_ADDR 直到读到 1 -> 知道 PE 到了 WFI。
 3. UVM driver 注入 spi_int_in[INTID]（电平，hold 100 周期）。
 4. GIC pending -> PE 被 WFI 唤醒 -> handler：ack(IAR1) + eoi(EOIR1) +
-   比对 expected INTID + 写 TB_RESULT_ADDR(0x1300_0044) = 0(pass)/1(fail)。
+   比对 expected INTID + 写 TB_RESULT_ADDR(0x274F_0544) = 0(pass)/1(fail)。
 5. handler eret 返回 .S 循环，.S 写 TB_READY_ADDR = 0（清除，表示本轮完成）。
 6. UVM backdoor poll TB_READY_ADDR 直到读到 0 -> 读 TB_RESULT -> 判 pass/fail。
 7. 下一轮 INTID。

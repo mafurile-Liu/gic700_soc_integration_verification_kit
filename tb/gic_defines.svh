@@ -19,10 +19,11 @@
 `define GICR_ISPENDR0_OFF  32'h0000_0200
 
 // ---- Tube / testbench addresses (source: common/gic_common.h) ----
-`define TB_BASE           32'h1300_0000
-`define TB_EXEC_PE_ADDR   32'h1300_0020    // tube + 0x20: exec PE affinity
-`define TB_READY_ADDR     32'h1300_0040    // tube + 0x40: PE -> TB ready
-`define TB_RESULT_ADDR    32'h1300_0044    // tube + 0x44: per-INTID result
+`define TB_BASE           32'h274F_0500
+`define TB_EXEC_PE_ADDR   32'h274F_0520    // tube + 0x20: exec PE affinity
+`define TB_READY_ADDR     32'h274F_0540    // tube + 0x40: PE -> TB ready
+`define TB_RESULT_ADDR    32'h274F_0544    // tube + 0x44: per-INTID result
+`define TB_EXPECTED_INTID 32'h274F_0548    // tube + 0x48: expected INTID
 
 // ---- SoC topology ----
 `define N_PE              24              // 6 clusters x 4 cores

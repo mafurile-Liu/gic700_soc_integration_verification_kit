@@ -5,7 +5,7 @@
  *            New testcases call these and stay ~20 lines.
  * Framework: EL3 boot (bootcode.s). Entry=test_start.
  *            IRQ vector=curr_el_spx_irq_vector, FIQ vector=curr_el_spx_fiq_vector.
- *            Result=end_test (writes pass/fail message to tube 0x13000000).
+ *            Result=end_test (writes pass/fail message to tube 0x274F0500).
  *            Handlers call core_synchronisation (bootcode provides).
  * Build:     aarch64-none-elf-gcc -c gic_common.S -Icommon
  ******************************************************************************/
@@ -63,6 +63,7 @@
         .global cpu_if_init_grp0
         .global wfi_wait_irq
         .global wfi_wait_fiq
+        .weak   gic_user_handler
 
 
 /*----------------------------------------------------------
@@ -561,8 +562,14 @@ gic_wait_fiq_clear:
 gic_irq_handler_grp1:
         ldr     x0,=core_sync1
         bl      core_synchronisation
-        mrs     x0,ICC_IAR1_EL1
-        msr     ICC_EOIR1_EL1,x0
+        mrs     x0,ICC_IAR1_EL1                 /* ack: x0 = INTID */
+        msr     ICC_EOIR1_EL1,x0                /* eoi: priority drop + deactivate */
+        /* C callback hook: gic_user_handler(intid).
+           Weak symbol -> NOP if not linked. Save x0 (INTID) + x30 (LR) on stack. */
+        stp     x0,x30,[sp,#-16]!
+        bl      gic_user_handler
+        ldp     x0,x30,[sp],#16                 /* restore INTID and LR */
+        /* Default: compare actual INTID to expected */
         ldr     x1,=gic_expected_intid
         ldr     x2,[x1]
         cmp     x0,x2

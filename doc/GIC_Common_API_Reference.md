@@ -117,7 +117,7 @@ FIQ 版：IAR0/EOIR0 + wait_fiq_clear。
 ## 7. 结果
 
 ### test_pass(void) / test_fail(void)
-test_pass: end_test (tube 0x13000000) 自旋。test_fail: end_test (tube 0x13000000) 自旋。仿真器读 x0 判定。
+test_pass: end_test (tube 0x274F0500) 自旋。test_fail: end_test (tube 0x274F0500) 自旋。仿真器读 x0 判定。
 
 ## 8. 底层构建块（兼容 / 自定义测试）
 gic_init_* 内部含这些；自定义测试（如 preempt）也可单独调用：

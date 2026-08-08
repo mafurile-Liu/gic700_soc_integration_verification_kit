@@ -7,7 +7,7 @@
  * Framework: EL3 boot (bootcode.s provides boot + vector + end_test).
  *            Tests run at EL3 (Secure). SCR_EL3.IRQ=1,FIQ=1 (bootcode sets).
  *            Vector labels: curr_el_spx_irq_vector / curr_el_spx_fiq_vector.
- *            Result: end_test (writes pass/fail message to tube 0x13000000).
+ *            Result: end_test (writes pass/fail message to tube 0x274F0500).
  *            TB sync: TB_READY_ADDR (PE->TB, ready for injection),
  *                     TB_RESULT_ADDR (PE->TB, per-INTID result for scan).
  ******************************************************************************/
@@ -36,13 +36,15 @@
 #define PPI_CNTPS   29
 #define PPI_CNTHP   26
 
-/* ---- Testbench mailbox (tube region 0x13000000+, backdoor poll) ---- */
+/* ---- Testbench mailbox (tube region 0x274F0500+, backdoor poll) ---- */
+.equ TB_BASE, 0x274F0500
 #ifndef TB_READY_ADDR
-.equ TB_READY_ADDR, 0x13000040
+.equ TB_READY_ADDR, (TB_BASE + 0x40)
 #endif
 #ifndef TB_RESULT_ADDR
-.equ TB_RESULT_ADDR, 0x13000044
+.equ TB_RESULT_ADDR, (TB_BASE + 0x44)
 #endif
+.equ TB_EXPECTED_INTID_ADDR, (TB_BASE + 0x48)
 
 /* ---- API (args in x0-x7, AAPCS). All in gic_common.S ---- */
 
@@ -76,7 +78,7 @@
 /*                                                     aliased, IAR1)   */
 /*   extern uint64_t gic_expected_intid;  (test stores expected INTID) */
 
-/* Result: end_test writes pass/fail message to tube (0x13000000).     */
+/* Result: end_test writes pass/fail message to tube (0x274F0500).     */
 /*   test_pass(void); test_fail(void);                                  */
 
 /* ---- LPI / ITS API (all in gic_common.S) ---- */
