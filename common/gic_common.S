@@ -580,6 +580,7 @@ gic_irq_handler_grp1:
         /* Wait for SV to de-assert level and clear flag.
            Blocks until flag=0 or timeout. Ensures level is low before EOI,
            preventing re-pending of level-triggered interrupts. */
+        mov     x0,x9                           /* pass INTID to pending poll */
         bl      tb_wait_int_deasserted
         msr     ICC_EOIR1_EL1,x9                /* EOI: priority drop + deactivate */
         ldr     x1,=gic_expected_intid
@@ -666,37 +667,43 @@ tb_notify_int_taken:
         ret
 
 /*----------------------------------------------------------
- * tb_wait_int_deasserted(void)
- *   Poll TB_INT_ASSERT_ADDR until it reads 0 (SV has de-asserted level
- *   and cleared the flag). Timeout after 10000 cycles to handle
- *   software-injected interrupts (no SV driver involved).
+ * tb_wait_int_deasserted(x0=intid)
+ *   Poll the GIC pending register for the given INTID until its pending
+ *   bit is 0. Direct hardware register poll (no mem flag).
  *
- *   This must be called BEFORE EOI for level-triggered interrupts,
- *   to ensure the level signal is low when EOI deactivates the
- *   interrupt. Otherwise the GIC may re-pend the interrupt.
+ *   Level-triggered: after IAR, GIC clears pending. If level still high,
+ *   re-sets pending. Poll until 0 = SV has de-asserted. Call BEFORE EOI.
+ *   Edge/software-injected: pending cleared by IAR, won't re-set. Returns immediately.
+ *
+ *   INTID < 32 (SGI/PPI): poll GICR_ISPENDR0, bit = 1 << intid.
+ *   INTID >= 32 (SPI): poll GICD_ISPENDRn, bank = intid/32, bit = 1<<(intid%32).
  *----------------------------------------------------------*/
+        .global tb_wait_int_deasserted
 tb_wait_int_deasserted:
-        ldr     x0,=TB_INT_ASSERT_ADDR
-        mov     x1,#10000                    /* timeout */
-1:      ldr     w2,[x0]
-        cbz     w2,2f                        /* flag cleared -> done */
-        subs    x1,x1,#1
-        b.ne    1b
-2:      ret
-
-/*----------------------------------------------------------
- * test_pass(void)
- *   Write pass message to tube (0x13000000) via end_test, then WFI spin.
- *----------------------------------------------------------*/
-
-/*----------------------------------------------------------
- * tb_notify_ready(void)
- *   Write 1 to TB_READY_ADDR to signal the testbench that the PE is about
- *   to enter WFI and is ready for interrupt injection.
- *----------------------------------------------------------*/
-tb_notify_ready:
-        ldr     x1,=TB_READY_ADDR
-        str     w0,[x1]                        /* store trigger type: 1=edge, 2=level */
+        cmp     w0,#32
+        b.lo    wait_ppi_sgi                 /* PPI/SGI: use GICR_ISPENDR0 */
+        /* SPI: compute bank and bit */
+        mov     w1,#32
+        udiv    w2,w0,w1                     /* bank = intid / 32 */
+        msub    w3,w2,w1,w0                  /* bit_pos = intid % 32 */
+        mov     w4,#1
+        lsl     w4,w4,w3                     /* bit = 1 << bit_pos */
+        ldr     x5,=GICD_BASE
+        mov     x6,#GICD_ISPENDRn
+        add     x6,x6,x2,lsl #2              /* addr = GICD + ISPENDRn + bank*4 */
+wait_spi:
+        ldr     w7,[x5,x6]
+        tst     w7,w4
+        b.ne    wait_spi                     /* pending still set -> keep polling */
+        ret
+wait_ppi_sgi:
+        mov     w4,#1
+        lsl     w4,w4,w0                     /* bit = 1 << intid */
+        ldr     x5,=GICR_SGI_BASE
+wait_ppi:
+        ldr     w7,[x5,#GICR_ISPENDR0]
+        tst     w7,w4
+        b.ne    wait_ppi                     /* pending still set -> keep polling */
         ret
 
 test_pass:

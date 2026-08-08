@@ -502,16 +502,24 @@ gic_fiq_handler_lpi:
         cmp     x0,#INTID_SPURIOUS              /* 1023: spurious */
         b.eq    test_fail
         /* Direct Group 0 interrupt (rare for LPI, but handle it) */
+        mov     x9,x0                           /* save INTID */
         msr     ICC_EOIR0_EL1,x0
         b       2f
 1:
         /* Group 1 pending: read actual LPI INTID from IAR1 */
         mrs     x0,ICC_IAR1_EL1
+        mov     x9,x0                           /* save INTID */
         msr     ICC_EOIR1_EL1,x0
 2:
+        /* C callback hook (weak, NOP if not linked) */
+        stp     x9,x30,[sp,#-16]!
+        mov     x0,x9
+        bl      gic_user_handler
+        ldp     x9,x30,[sp],#16
+        /* LPI is always edge-triggered: no pending poll needed */
         ldr     x1,=gic_expected_intid
         ldr     x2,[x1]
-        cmp     x0,x2
+        cmp     x9,x2
         b.ne    test_fail
         bl      gic_wait_fiq_clear
         b       test_pass
