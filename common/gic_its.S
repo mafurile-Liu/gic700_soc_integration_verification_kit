@@ -60,6 +60,8 @@
 
 
 
+        .weak   gic_user_handler
+
         .section .text
         .align 4
 
