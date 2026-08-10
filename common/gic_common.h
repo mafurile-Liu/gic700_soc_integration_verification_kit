@@ -47,6 +47,35 @@
 .equ TB_EXPECTED_INTID_ADDR, (TB_BASE + 0x48)
 .equ TB_INT_ASSERT_ADDR, (TB_BASE + 0x4C)
 
+/* ---- LPI / ITS memory table addresses (override with -D if needed) ---- */
+#ifndef LPI_PROP_TABLE_ADDR
+.equ LPI_PROP_TABLE_ADDR, 0x80010000   /* LPI Configuration Table (1 byte/LPI) */
+#endif
+#ifndef LPI_PEND_TABLE_ADDR
+.equ LPI_PEND_TABLE_ADDR, 0x80020000   /* LPI Pending Table (1 bit/LPI) */
+#endif
+#ifndef ITS_CMDQ_ADDR
+.equ ITS_CMDQ_ADDR, 0x80030000         /* ITS Command Queue (32 bytes/entry) */
+#endif
+#ifndef ITS_DEV_TABLE_ADDR
+.equ ITS_DEV_TABLE_ADDR, 0x80040000    /* ITS Device Table (GITS_BASER0) */
+#endif
+#ifndef ITS_COL_TABLE_ADDR
+.equ ITS_COL_TABLE_ADDR, 0x80050000    /* ITS Collection Table (GITS_BASER1) */
+#endif
+#ifndef ITS_VPE_TABLE_ADDR
+.equ ITS_VPE_TABLE_ADDR, 0x80060000    /* ITS vPE Table (GITS_BASER2, GICv4) */
+#endif
+#ifndef ITS_ITT_ADDR
+.equ ITS_ITT_ADDR, 0x80070000          /* Interrupt Translation Table (MAPD target) */
+#endif
+#ifndef VLPE_CONF_TABLE_ADDR
+.equ VLPE_CONF_TABLE_ADDR, 0x80080000  /* vPE Config Table (vLPI config, 1 byte/vLPI) */
+#endif
+#ifndef VLPE_PEND_TABLE_ADDR
+.equ VLPE_PEND_TABLE_ADDR, 0x80090000  /* vPE Pending Table (vLPI pending, 1 bit/vLPI) */
+#endif
+
 /* ---- API (args in x0-x7, AAPCS). All in gic_common.S ---- */
 
 /* Bring-up (one call = GICD enable group + GICR wake + CPU interface) */
