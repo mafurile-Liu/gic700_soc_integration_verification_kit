@@ -60,6 +60,8 @@ config_loop:
 
         /* Weak hook: user custom C code (NOP if not linked) */
         .weak   user_int_test
+user_int_test:
+        ret
         bl      user_int_test
 
         /* Prepare for WFI */

@@ -65,6 +65,10 @@
         .section .text
         .align 4
 
+/* gic_user_handler is weak-defined in gic_common.S.
+   This .weak ensures gic_its.o's reference is also weak. */
+        .align 4
+
 /******************************************************************************
  * ITS (Interrupt Translation Service) API
  *   Based on Arm AArch64_GIC_v3_v4_example gicv3_lpis.c.

@@ -75,6 +75,14 @@
         .section .text
         .align 4
 
+/*----------------------------------------------------------
+ * gic_user_handler(x0=intid) [weak default: empty]
+ *   Override by defining gic_user_handler in C (user_handler.c).
+ *----------------------------------------------------------*/
+        .weak   gic_user_handler
+gic_user_handler:
+        ret
+
 /******************************************************************************
  * Bring-up
  ******************************************************************************/
@@ -704,6 +712,18 @@ wait_ppi:
         ldr     w7,[x5,#GICR_ISPENDR0]
         tst     w7,w4
         b.ne    wait_ppi                     /* pending still set -> keep polling */
+        ret
+
+/*----------------------------------------------------------
+ * tb_notify_ready(x0=trigger_type)
+ *   Write trigger_type to TB_READY_ADDR. Signals testbench that PE is
+ *   ready for interrupt injection.
+ *   trigger_type: 1=edge-triggered, 2=level-triggered.
+ *----------------------------------------------------------*/
+        .global tb_notify_ready
+tb_notify_ready:
+        ldr     x1,=TB_READY_ADDR
+        str     w0,[x1]                        /* store trigger type */
         ret
 
 test_pass:
