@@ -65,8 +65,14 @@
         .section .text
         .align 4
 
-/* gic_user_handler is weak-defined in gic_common.S.
-   This .weak ensures gic_its.o's reference is also weak. */
+/*----------------------------------------------------------
+ * gic_user_handler(x0=intid) [weak default: empty]
+ *   Also defined in gic_common.S. Multiple weak definitions are
+ *   allowed by the linker; a strong definition (user_handler.c)
+ *   overrides all weak ones.
+ *----------------------------------------------------------*/
+gic_user_handler:
+        ret
         .align 4
 
 /******************************************************************************
