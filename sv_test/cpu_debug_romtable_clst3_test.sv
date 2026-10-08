@@ -38,7 +38,7 @@ class cpu_debug_romtable_clst3_test extends cpu_debug_base_test;
         DBG_GETREG32(CLST_BASE + 32'hFF4, temp_data);
         `uvm_info("clst3_romtable", $sformatf("CIDR1 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'h10)
-            `uvm_error("clst3_romtable", $sformatf("CIDR1 = %h, expected x10", temp_data))
+            `uvm_error("clst3_romtable", $sformatf("CIDR1 = %h, expected x90", temp_data))
 
         DBG_GETREG32(CLST_BASE + 32'hFF8, temp_data);
         `uvm_info("clst3_romtable", $sformatf("CIDR2 = %h", temp_data), UVM_LOW)
@@ -78,18 +78,19 @@ class cpu_debug_romtable_clst3_test extends cpu_debug_base_test;
             n_entry++;
             `uvm_info("clst3_romtable",
                       $sformatf("entry[%0d] = %08h -> component 0x%08h",
-                                e, entry_val, entry_val & 32'hFFFF_F000), UVM_LOW)
-            if (!entry_val[0])
-                `uvm_error("clst3_romtable", $sformatf("entry[%0d] = %08h, bit0 not set", e, entry_val))
+                                e, entry_val,
+                                CLST_BASE + ({{12{entry_val[31]}}, entry_val[31:12]} << 12)), UVM_LOW)
+            if (entry_val[1:0] != 2'b11)
+                `uvm_error("clst3_romtable", $sformatf("entry[%0d] = %08h, PRESENT is not 0b11", e, entry_val))
         end
         `uvm_info("clst3_romtable", $sformatf("valid entries = %0d", n_entry), UVM_LOW)
 
         // follow entry0 to the first component of the cluster debugblock
-        if (!entry0_val[0]) begin
+        if (entry0_val[1:0] != 2'b11) begin
             `uvm_error("clst3_romtable", "entry0 not present, cluster debugblock path broken")
         end
         else begin
-            comp_base = entry0_val & 32'hFFFF_F000;
+            comp_base = CLST_BASE + ({{12{entry0_val[31]}}, entry0_val[31:12]} << 12);
             DBG_GETREG32(comp_base + 32'hFF0, rd_data);
             `uvm_info("clst3_romtable", $sformatf("comp 0x%08h CIDR0 = %h", comp_base, rd_data), UVM_LOW)
             if (rd_data[7:0] != 8'h0D)
@@ -99,8 +100,8 @@ class cpu_debug_romtable_clst3_test extends cpu_debug_base_test;
             `uvm_info("clst3_romtable",
                       $sformatf("comp CIDR1 = %h (class %h, 1=romtable 9=coresight)",
                                 rd_data, rd_data[7:4]), UVM_LOW)
-            if (rd_data[7:4] == 4'h0)
-                `uvm_error("clst3_romtable", $sformatf("comp class = %h illegal (0x0)", rd_data[7:4]))
+            if (rd_data[7:0] != 8'h90)
+                `uvm_error("clst3_romtable", $sformatf("comp CIDR1 = %h, expected x90", rd_data))
 
             DBG_GETREG32(comp_base + 32'hFE0, rd_data);
             `uvm_info("clst3_romtable", $sformatf("comp PIDR0 = %h", rd_data), UVM_LOW)

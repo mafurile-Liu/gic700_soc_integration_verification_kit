@@ -42,8 +42,8 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
 
             DBG_GETREG32(clst_base + 32'hFF4, rd_data); // CIDR1
             `uvm_info("romtable_scan", $sformatf("clst%0d CIDR1 = %h", c, rd_data), UVM_LOW)
-            if (rd_data[7:0] != 8'h10)
-                `uvm_error("romtable_scan", $sformatf("clst%0d CIDR1 = %h, expected x10", c, rd_data))
+            if (rd_data[7:0] != 8'h90)
+                `uvm_error("romtable_scan", $sformatf("clst%0d CIDR1 = %h, expected x90", c, rd_data))
 
             DBG_GETREG32(clst_base + 32'hFF8, rd_data); // CIDR2
             if (rd_data[7:0] != 8'h05)
@@ -56,8 +56,8 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
             DBG_GETREG32(clst_base, rd_data); // entry0
             `uvm_info("romtable_scan",
                       $sformatf("clst%0d entry0 = %08h", c, rd_data), UVM_LOW)
-            if (!rd_data[0])
-                `uvm_error("romtable_scan", $sformatf("clst%0d entry0 not present", c))
+            if (rd_data[1:0] != 2'b11)
+                `uvm_error("romtable_scan", $sformatf("clst%0d entry0 PRESENT is not 0b11", c))
         end
 
         // shared components of apb_tree_cpu, log only

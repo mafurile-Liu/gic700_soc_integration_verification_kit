@@ -1,7 +1,8 @@
 //----------------------------------------------------------------------
 // cpu_debug_romtable_testlist.svh
 //
-// Testlist for the 6 CPU cluster debugblock ROM table tests.
+// Testlist for the 6 CPU cluster debugblock ROM table and
+// halt/resume tests.
 // Include this file from the cpu test package to compile all of them:
 //
 //   package cpu_test_pkg;
@@ -31,5 +32,13 @@
 `include "cpu_debug_romtable_clst4_test.sv"
 `include "cpu_debug_romtable_clst5_test.sv"
 `include "cpu_debug_romtable_scan_all_test.sv"
+`include "cpu_debug_halt_resume_base_test.sv"
+`include "cpu_debug_halt_resume_clst0_test.sv"
+`include "cpu_debug_halt_resume_clst1_test.sv"
+`include "cpu_debug_halt_resume_clst2_test.sv"
+`include "cpu_debug_halt_resume_clst3_test.sv"
+`include "cpu_debug_halt_resume_clst4_test.sv"
+`include "cpu_debug_halt_resume_clst5_test.sv"
+`include "cpu_debug_halt_resume_scan_all_test.sv"
 
 `endif
