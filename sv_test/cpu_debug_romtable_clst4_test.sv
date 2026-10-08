@@ -37,7 +37,7 @@ class cpu_debug_romtable_clst4_test extends cpu_debug_base_test;
 
         DBG_GETREG32(CLST_BASE + 32'hFF4, temp_data);
         `uvm_info("clst4_romtable", $sformatf("CIDR1 = %h", temp_data), UVM_LOW)
-        if (temp_data[7:0] != 8'h10)
+        if (temp_data[7:0] != 8'h90)
             `uvm_error("clst4_romtable", $sformatf("CIDR1 = %h, expected x90", temp_data))
 
         DBG_GETREG32(CLST_BASE + 32'hFF8, temp_data);
