@@ -50,19 +50,40 @@ class cpu_debug_romtable_clst4_test extends cpu_debug_base_test;
         if (temp_data[7:0] != 8'hB1)
             `uvm_error("clst4_romtable", $sformatf("CIDR3 = %h, expected xB1", temp_data))
 
-        // PIDR / DEVID, log only
+        // ROM table golden identity, silicon-proven on ZJ100:
+        //   PART = 0xE15, designer JEP106 bank 0x23
+        //   (DES_2=0x4, DES_1=0x3, JEDEC=1, DES_0=0x9)
+        // This is the DSU-120 DebugBlock ROM table; the per-core ROM
+        // table of the A720 TRM Table 17-2 differs (PART 0xD81, PIDR
+        // 0x04200BBD81). REVISION / REVAND / CMOD / SIZE are revision
+        // fields and are logged only.
         DBG_GETREG32(CLST_BASE + 32'hFE0, temp_data);
         `uvm_info("clst4_romtable", $sformatf("PIDR0 = %h", temp_data), UVM_LOW)
+        if (temp_data[7:0] != 8'h15)
+            `uvm_error("clst4_romtable", $sformatf("PIDR0 = %h, expected x15 (PART_0)", temp_data))
+
         DBG_GETREG32(CLST_BASE + 32'hFE4, temp_data);
         `uvm_info("clst4_romtable", $sformatf("PIDR1 = %h", temp_data), UVM_LOW)
+        if (temp_data[7:0] != 8'h9E)
+            `uvm_error("clst4_romtable", $sformatf("PIDR1 = %h, expected x9E (DES_0=9 PART_1=E)", temp_data))
+
         DBG_GETREG32(CLST_BASE + 32'hFE8, temp_data);
-        `uvm_info("clst4_romtable", $sformatf("PIDR2 = %h", temp_data), UVM_LOW)
+        `uvm_info("clst4_romtable", $sformatf("PIDR2 = %h (REVISION %h)", temp_data, temp_data[7:4]), UVM_LOW)
+        if (temp_data[3:0] != 4'hB)
+            `uvm_error("clst4_romtable", $sformatf("PIDR2[3:0] = %h, expected hB (JEDEC=1, DES_1=3)", temp_data[3:0]))
+
         DBG_GETREG32(CLST_BASE + 32'hFEC, temp_data);
-        `uvm_info("clst4_romtable", $sformatf("PIDR3 = %h", temp_data), UVM_LOW)
+        `uvm_info("clst4_romtable", $sformatf("PIDR3 = %h (REVAND %h, CMOD %h)", temp_data, temp_data[7:4], temp_data[3:0]), UVM_LOW)
+
         DBG_GETREG32(CLST_BASE + 32'hFD0, temp_data);
-        `uvm_info("clst4_romtable", $sformatf("PIDR4 = %h", temp_data), UVM_LOW)
+        `uvm_info("clst4_romtable", $sformatf("PIDR4 = %h (SIZE %h)", temp_data, temp_data[7:4]), UVM_LOW)
+        if (temp_data[3:0] != 4'h4)
+            `uvm_error("clst4_romtable", $sformatf("PIDR4[3:0] = %h, expected h4 (DES_2)", temp_data[3:0]))
+
         DBG_GETREG32(CLST_BASE + 32'hFC8, temp_data);
-        `uvm_info("clst4_romtable", $sformatf("DEVID = %h", temp_data), UVM_LOW)
+        `uvm_info("clst4_romtable", $sformatf("DEVID = %h (SYSMEM %h)", temp_data, temp_data[3:0]), UVM_LOW)
+        if (temp_data[3:0] != 4'h3)
+            `uvm_error("clst4_romtable", $sformatf("DEVID.SYSMEM = %h, expected h3 (relative addressing)", temp_data[3:0]))
 
         // ROM table entries 0..11
         n_entry    = 0;

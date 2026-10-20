@@ -119,9 +119,14 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
                 dbg_base = comp_base;
 
             // A720 core CTI peripheral ID has DES_0=0xB, PART_1=0xD, PART_0=0x81.
+            // The A720 core ROM table shares PART 0xD81 (A720 TRM Table 17-2
+            // vs 17-3), so require a non-ROM-table DEVARCH before matching.
             if (cti_base == 32'h0 &&
-                pid0[7:0] == 8'h81 && pid1[7:0] == 8'hBD)
-                cti_base = comp_base;
+                pid0[7:0] == 8'h81 && pid1[7:0] == 8'hBD) begin
+                DBG_GETREG32(comp_base + 32'hFBC, rd_data);
+                if (rd_data != 32'h4770_0AF7)
+                    cti_base = comp_base;
+            end
 
             if (dbg_base != 32'h0 && cti_base != 32'h0)
                 break;

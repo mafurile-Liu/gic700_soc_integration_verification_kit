@@ -32,7 +32,7 @@ and sys_dbg func_apb syscfg/dbm/iniu (0x4D00_0000..).
 
 | offset | register | note |
 | --- | --- | --- |
-| 0x000..0x7FC | entry0..entry511 | bit0 = present, 0x0 = end marker |
+| 0x000..0x7FC | entry0..entry511 | bits[1:0] PRESENT = 0b11, 0x0 = end marker |
 | 0xFC8 | DEVID | |
 | 0xFD0 | PIDR4 | |
 | 0xFE0..0xFEC | PIDR0..PIDR3 | |
@@ -42,6 +42,27 @@ Each valid entry points at a component inside the same 2.5M debugblock
 (core debug units, CTI, PMU, ETM, ...). The tests log the resolved
 component address of every entry, then follow entry0 and read that
 component's own CIDR/PIDR0 to prove the ROM table path is live.
+
+## Golden identity values (silicon-proven on ZJ100)
+
+The cluster debugblock ROM table is the DSU-120 DebugBlock ROM table
+(the A720 TRM 17.4/17.5 defer the debug memory map and the DebugBlock
+ROM table to the DSU-120 TRM), not the per-core ROM table documented in
+A720 TRM Table 17-2:
+
+| field | value |
+| --- | --- |
+| CIDR0..3 | 0x0D 0x90 0x05 0xB1 (matches TRM core ROM table Component ID 0xB105900D) |
+| PART (PIDR1[3:0]:PIDR0) | 0xE15 |
+| designer | JEP106 bank 0x23 (DES_2=0x4, DES_1=0x3, JEDEC=1, DES_0=0x9) |
+| DEVID.SYSMEM | 0x3 (entries use relative addressing) |
+
+The romtable tests assert PART and the designer fields and log-only
+REVISION / REVAND / CMOD / SIZE. The A720 core ROM table variant has
+PART 0xD81 (PIDR 0x04200BBD81), the same PIDR0/PIDR1 as the core CTI,
+so the halt/resume test excludes a core ROM table from CTI matching by
+checking DEVARCH != 0x47700AF7 (A720 TRM Table 17-2) before claiming a
+CTI.
 
 ## Files
 
