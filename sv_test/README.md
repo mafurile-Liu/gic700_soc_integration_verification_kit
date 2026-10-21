@@ -59,10 +59,9 @@ A720 TRM Table 17-2:
 
 The romtable tests assert PART and the designer fields and log-only
 REVISION / REVAND / CMOD / SIZE. The A720 core ROM table variant has
-PART 0xD81 (PIDR 0x04200BBD81), the same PIDR0/PIDR1 as the core CTI,
-so the halt/resume test excludes a core ROM table from CTI matching by
-checking DEVARCH != 0x47700AF7 (A720 TRM Table 17-2) before claiming a
-CTI.
+PART 0xD81 (PIDR 0x04200BBD81); that distinction only matters if a test
+walks a per-core ROM table. The halt/resume tests avoid that walk and
+use the DSU-120 Table 16-2 fixed offsets.
 
 ## Files
 
@@ -76,7 +75,7 @@ CTI.
 | cpu_debug_romtable_clst5_test.sv | same for clst5 |
 | cpu_debug_romtable_scan_all_test.sv | one pass over all 6 clusters + shared funnels/cti_pmu |
 | cpu_debug_cti_pmu_test.sv | CSS600 CTI access test for cti_pmu @ 0x4BF0_2000 |
-| cpu_debug_halt_resume_base_test.sv | shared ROM-walk/CTI halt-resume sequence |
+| cpu_debug_halt_resume_base_test.sv | shared direct-address CTI halt-resume sequence |
 | cpu_debug_halt_resume_clst0_test.sv | halt and resume one A720 core in clst0 |
 | cpu_debug_halt_resume_clst1_test.sv | halt and resume one A720 core in clst1 |
 | cpu_debug_halt_resume_clst2_test.sv | halt and resume one A720 core in clst2 |
@@ -108,10 +107,12 @@ needs `cpu_debug_base_test` (temp_data), `aw_seen` from the base test,
 and the `DBG_GETREG32` / `DBG_SETREG32` macros from the existing debug
 env.
 
-The halt/resume tests locate the first core debug component and first
-core CTI through the cluster ROM table, configure CTI output triggers
-0/1 to channel 0, and poll `EDPRSR.HALTED`.  They require the target
-core to be powered and released from reset before starting.
+The halt/resume tests use the DSU-120 TRM Table 16-2 fixed cluster
+offsets directly: core0 debug is `+0x90000` and core0 CTI is `+0xF0000`.
+They confirm the target PIDR values, configure CTI output triggers 0/1
+to channel 0, and poll `EDPRSR.HALTED`.  They require the target core
+to be powered and released from reset before starting.  The separate
+ROM table tests own the DebugBlock ROM walk coverage.
 
 If the DBG address window in the testbench maps the cluster blocks at a
 different base than the external view above, only `CLST_BASE` (or

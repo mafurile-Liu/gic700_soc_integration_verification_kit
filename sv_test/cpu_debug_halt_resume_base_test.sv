@@ -4,10 +4,11 @@
 //----------------------------------------------------------------------
 // Base test for A720 cluster halt/resume.
 //
-// The cluster ROM table is walked to locate the first core debug
-// component and the first core CTI.  The CTI channel-0 pulse is routed
-// to CTI output trigger 0 (external debug request) and output trigger
-// 1 (external restart request), matching the Armv8-A run-control use.
+// Use the DSU-120 TRM fixed cluster offsets directly for the fast
+// halt/resume path.  DSU-120 TRM Table 16-2 places core0 debug at
+// +0x90000 and core0 CTI at +0xF0000.  The CTI channel-0 pulse is
+// routed to CTI output trigger 0 (external debug request) and output
+// trigger 1 (external restart request), matching Armv8-A run-control.
 //
 // A720 external-debug offsets:
 //   EDSCR.HDE     bit 14, register 0x088
@@ -21,7 +22,9 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
     localparam bit [31:0] CPU_TREE_BASE = 32'h4B00_0000;
     localparam bit [31:0] CLST_STRIDE   = 32'h0028_0000;
     localparam int        N_CLST        = 6;
-    localparam int        MAX_ROM_ENTRY = 12;
+    // DSU-120 TRM Table 16-2: fixed offsets within a cluster DebugBlock.
+    localparam bit [31:0] CORE0_DEBUG_OFFSET = 32'h0009_0000;
+    localparam bit [31:0] CORE0_CTI_OFFSET   = 32'h000F_0000;
 
     // CoreSight CTI register offsets.
     localparam bit [31:0] CTI_CONTROL     = 32'h000;
@@ -42,9 +45,6 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
     bit [31:0] cluster_base;
     bit [31:0] dbg_base;
     bit [31:0] cti_base;
-    bit [31:0] entry_val;
-    bit [31:0] comp_base;
-    bit [31:0] rd_data;
     bit [31:0] cti_gate_restore;
     int        cluster_index;
     string     tag;
@@ -60,84 +60,42 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
         tag           = $sformatf("halt_resume_clst%0d", idx);
     endfunction
 
-    protected function automatic bit [31:0] resolve_rom_entry(bit [31:0] entry);
-        bit [31:0] offset;
-
-        // OFFSET is a signed, 4K-granular offset relative to the ROM table.
-        offset = {{12{entry[31]}}, entry[31:12]};
-        return cluster_base + (offset << 12);
-    endfunction
-
-    protected task expect_reg(string name,
-                              bit [31:0] addr,
-                              bit [31:0] mask,
-                              bit [31:0] expected);
-        DBG_GETREG32(addr, temp_data);
-        `uvm_info(tag, $sformatf("%s = %h", name, temp_data), UVM_LOW)
-        if ((temp_data & mask) != expected)
-            `uvm_error(tag, $sformatf("%s = %h, expected %08h",
-                                      name, temp_data & mask, expected))
-    endtask
-
-    protected virtual task check_cluster_rom(output bit path_ok);
+    protected virtual task check_halt_resume_targets(output bit path_ok);
         path_ok = 1;
-        `uvm_info(tag, $sformatf("begin cluster ROM check @ %08h", cluster_base), UVM_LOW)
+        `uvm_info(tag, $sformatf("begin target check @ %08h", cluster_base), UVM_LOW)
 
-        expect_reg("ROM CIDR0", cluster_base + 32'hFF0, 32'h0000_00FF, 32'h0000_000D);
-        expect_reg("ROM CIDR1", cluster_base + 32'hFF4, 32'h0000_00FF, 32'h0000_0090);
-        expect_reg("ROM CIDR2", cluster_base + 32'hFF8, 32'h0000_00FF, 32'h0000_0005);
-        expect_reg("ROM CIDR3", cluster_base + 32'hFFC, 32'h0000_00FF, 32'h0000_00B1);
+        // DSU-120 TRM Table 16-2 gives these offsets directly:
+        //   core0 debug = +0x90000, core0 CTI = +0xF0000.
+        // The separate cluster ROM table tests own the ROM walk coverage.
+        dbg_base = cluster_base + CORE0_DEBUG_OFFSET;
+        cti_base = cluster_base + CORE0_CTI_OFFSET;
 
-        dbg_base = 32'h0;
-        cti_base = 32'h0;
-
-        for (int e = 0; e < MAX_ROM_ENTRY; e++) begin
-            bit [31:0] pid0;
-            bit [31:0] pid1;
-
-            DBG_GETREG32(cluster_base + e * 4, entry_val);
-            `uvm_info(tag, $sformatf("ROM entry[%0d] = %08h", e, entry_val), UVM_LOW)
-
-            if (entry_val == 32'h0)
-                break;
-            if (entry_val[1:0] != 2'b11) begin
-                `uvm_error(tag, $sformatf("ROM entry[%0d] = %08h, PRESENT is not 0b11",
-                                          e, entry_val))
-                continue;
-            end
-
-            comp_base = resolve_rom_entry(entry_val);
-            DBG_GETREG32(comp_base + 32'hFE0, pid0);
-            DBG_GETREG32(comp_base + 32'hFE4, pid1);
-            `uvm_info(tag,
-                      $sformatf("component %08h PIDR1:PIDR0 = %02h%02h",
-                                comp_base, pid1[7:0], pid0[7:0]), UVM_LOW)
-
-            // A720 core debug peripheral ID is 0x47709A15.
-            if (dbg_base == 32'h0 &&
-                pid0[7:0] == 8'h15 && pid1[7:0] == 8'h9A)
-                dbg_base = comp_base;
-
-            // A720 core CTI peripheral ID has DES_0=0xB, PART_1=0xD, PART_0=0x81.
-            // The A720 core ROM table shares PART 0xD81 (A720 TRM Table 17-2
-            // vs 17-3), so require a non-ROM-table DEVARCH before matching.
-            if (cti_base == 32'h0 &&
-                pid0[7:0] == 8'h81 && pid1[7:0] == 8'hBD) begin
-                DBG_GETREG32(comp_base + 32'hFBC, rd_data);
-                if (rd_data != 32'h4770_0AF7)
-                    cti_base = comp_base;
-            end
-
-            if (dbg_base != 32'h0 && cti_base != 32'h0)
-                break;
-        end
-
-        if (dbg_base == 32'h0) begin
-            `uvm_error(tag, "A720 core debug component not found through ROM table")
+        // Confirm the direct addresses before programming run-control.
+        DBG_GETREG32(dbg_base + 32'hFE0, temp_data);
+        `uvm_info(tag, $sformatf("debug @ %08h PIDR0 = %h", dbg_base, temp_data), UVM_LOW)
+        if (temp_data[7:0] != 8'h15) begin
+            `uvm_error(tag, $sformatf("debug PIDR0 = %h, expected x15", temp_data))
             path_ok = 0;
         end
-        if (cti_base == 32'h0) begin
-            `uvm_error(tag, "A720 core CTI component not found through ROM table")
+
+        DBG_GETREG32(dbg_base + 32'hFE4, temp_data);
+        `uvm_info(tag, $sformatf("debug @ %08h PIDR1 = %h", dbg_base, temp_data), UVM_LOW)
+        if (temp_data[7:0] != 8'h9A) begin
+            `uvm_error(tag, $sformatf("debug PIDR1 = %h, expected x9A", temp_data))
+            path_ok = 0;
+        end
+
+        DBG_GETREG32(cti_base + 32'hFE0, temp_data);
+        `uvm_info(tag, $sformatf("CTI @ %08h PIDR0 = %h", cti_base, temp_data), UVM_LOW)
+        if (temp_data[7:0] != 8'h81) begin
+            `uvm_error(tag, $sformatf("CTI PIDR0 = %h, expected x81", temp_data))
+            path_ok = 0;
+        end
+
+        DBG_GETREG32(cti_base + 32'hFE4, temp_data);
+        `uvm_info(tag, $sformatf("CTI @ %08h PIDR1 = %h", cti_base, temp_data), UVM_LOW)
+        if (temp_data[7:0] != 8'hBD) begin
+            `uvm_error(tag, $sformatf("CTI PIDR1 = %h, expected xBD", temp_data))
             path_ok = 0;
         end
         if (!path_ok)
@@ -145,15 +103,6 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
 
         `uvm_info(tag,
                   $sformatf("debug @ %08h, CTI @ %08h", dbg_base, cti_base), UVM_LOW)
-        expect_reg("debug CIDR1", dbg_base + 32'hFF4, 32'h0000_00FF, 32'h0000_0090);
-        expect_reg("debug PIDR0", dbg_base + 32'hFE0, 32'h0000_00FF, 32'h0000_0015);
-        expect_reg("debug PIDR1", dbg_base + 32'hFE4, 32'h0000_00FF, 32'h0000_009A);
-        expect_reg("debug PIDR2", dbg_base + 32'hFE8, 32'h0000_00FF, 32'h0000_0070);
-        expect_reg("debug PIDR3", dbg_base + 32'hFEC, 32'h0000_00FF, 32'h0000_0047);
-
-        expect_reg("CTI CIDR1", cti_base + 32'hFF4, 32'h0000_00FF, 32'h0000_0090);
-        expect_reg("CTI PIDR0", cti_base + 32'hFE0, 32'h0000_00FF, 32'h0000_0081);
-        expect_reg("CTI PIDR1", cti_base + 32'hFE4, 32'h0000_00FF, 32'h0000_00BD);
     endtask
 
     protected virtual task wait_halted(bit want_halted, output bit reached);
@@ -190,7 +139,7 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
         bit halted;
         bit resumed;
 
-        check_cluster_rom(path_ok);
+        check_halt_resume_targets(path_ok);
         if (!path_ok)
             return;
 
