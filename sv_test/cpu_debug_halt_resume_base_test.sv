@@ -6,9 +6,12 @@
 //
 // Use the DSU-120 TRM fixed cluster offsets directly for the fast
 // halt/resume path.  DSU-120 TRM Table 16-2 places core0 debug at
-// +0x90000 and core0 CTI at +0xF0000.  The CTI channel-0 pulse is
-// routed to CTI output trigger 0 (external debug request) and output
-// trigger 1 (external restart request), matching Armv8-A run-control.
+// +0x90000 and core0 CTI at +0xF0000.  Core debug registers are in the
+// core power domain while CTIs are in the debug power domain, so request
+// cluster then core power using the DSU Granular Power Requesters before
+// accessing core debug.  The CTI channel-0 pulse is routed to CTI output
+// trigger 0 (external debug request) and output trigger 1 (external
+// restart request), matching Armv8-A run-control.
 //
 // A720 external-debug offsets:
 //   EDSCR.HDE     bit 14, register 0x088
@@ -23,8 +26,15 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
     localparam bit [31:0] CLST_STRIDE   = 32'h0028_0000;
     localparam int        N_CLST        = 6;
     // DSU-120 TRM Table 16-2: fixed offsets within a cluster DebugBlock.
+    localparam bit [31:0] CLUSTER_ROM_OFFSET = 32'h0001_0000;
     localparam bit [31:0] CORE0_DEBUG_OFFSET = 32'h0009_0000;
     localparam bit [31:0] CORE0_CTI_OFFSET   = 32'h000F_0000;
+    // DSU-120 Granular Power Requester offsets. Both ROM tables place
+    // DBGPCR0 at +0xA00 and DBGPSR0 at +0xA80.
+    localparam bit [31:0] GPR_DBGPCR0       = 32'h0000_0A00;
+    localparam bit [31:0] GPR_DBGPSR0       = 32'h0000_0A80;
+    localparam bit [31:0] GPR_POWER_REQUEST = 32'h0000_0002;
+    localparam int        GPR_POWER_TIMEOUT = 100;
 
     // CoreSight CTI register offsets.
     localparam bit [31:0] CTI_CONTROL     = 32'h000;
@@ -60,9 +70,54 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
         tag           = $sformatf("halt_resume_clst%0d", idx);
     endfunction
 
+    protected virtual task request_debug_power(output bit powered);
+        int wait_count;
+
+        powered = 0;
+
+        // DSU-120 TRM 15.4: first power up PDCLUSTER via DBROM_DBGPCR0,
+        // then power up PDCOMPLEX0 via CLUSTERROM_DBGPCR0.
+        DBG_SETREG32(cluster_base + GPR_DBGPCR0, GPR_POWER_REQUEST);
+        wait_count = 0;
+        while (wait_count < GPR_POWER_TIMEOUT) begin
+            DBG_GETREG32(cluster_base + GPR_DBGPSR0, temp_data);
+            if (temp_data[0] == 1'b1)
+                break;
+            #100ns;
+            wait_count++;
+        end
+        if (wait_count == GPR_POWER_TIMEOUT) begin
+            `uvm_error(tag, "cluster debug power did not become active")
+            return;
+        end
+
+        DBG_SETREG32(cluster_base + CLUSTER_ROM_OFFSET + GPR_DBGPCR0,
+                     GPR_POWER_REQUEST);
+        wait_count = 0;
+        while (wait_count < GPR_POWER_TIMEOUT) begin
+            DBG_GETREG32(cluster_base + CLUSTER_ROM_OFFSET + GPR_DBGPSR0,
+                         temp_data);
+            if (temp_data[0] == 1'b1)
+                break;
+            #100ns;
+            wait_count++;
+        end
+        if (wait_count == GPR_POWER_TIMEOUT) begin
+            `uvm_error(tag, "core0 debug power did not become active")
+            return;
+        end
+
+        powered = 1;
+        `uvm_info(tag, "cluster and core0 debug power active", UVM_LOW)
+    endtask
+
     protected virtual task check_halt_resume_targets(output bit path_ok);
         path_ok = 1;
         `uvm_info(tag, $sformatf("begin target check @ %08h", cluster_base), UVM_LOW)
+
+        request_debug_power(path_ok);
+        if (!path_ok)
+            return;
 
         // DSU-120 TRM Table 16-2 gives these offsets directly:
         //   core0 debug = +0x90000, core0 CTI = +0xF0000.

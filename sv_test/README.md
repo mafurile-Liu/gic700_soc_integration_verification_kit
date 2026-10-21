@@ -111,10 +111,13 @@ env.
 
 The halt/resume tests use the DSU-120 TRM Table 16-2 fixed cluster
 offsets directly: core0 debug is `+0x90000` and core0 CTI is `+0xF0000`.
-They confirm the target PIDR values, configure CTI output triggers 0/1
-to channel 0, and poll `EDPRSR.HALTED`.  They require the target core
-to be powered and released from reset before starting.  The separate
-ROM table tests own the DebugBlock ROM walk coverage.
+Before target accesses, they request cluster power through
+`DBROM_DBGPCR0/DBGPSR0` and core0 power through
+`CLUSTERROM_DBGPCR0/DBGPSR0`.  They confirm the target PIDR values,
+configure CTI output triggers 0/1 to channel 0, and poll
+`EDPRSR.HALTED`.  They require the target core to be released from reset
+before starting.  The separate ROM table tests own the DebugBlock ROM
+walk coverage.
 
 If the DBG address window in the testbench maps the cluster blocks at a
 different base than the external view above, only `CLST_BASE` (or
