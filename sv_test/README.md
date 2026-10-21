@@ -43,19 +43,21 @@ Each valid entry points at a component inside the same 2.5M debugblock
 component address of every entry, then follow entry0 and read that
 component's own CIDR/PIDR0 to prove the ROM table path is live.
 
-## Golden identity values (silicon-proven on ZJ100)
+## Golden identity values (DSU-120 r2p1)
 
 The cluster debugblock ROM table is the DSU-120 DebugBlock ROM table
 (the A720 TRM 17.4/17.5 defer the debug memory map and the DebugBlock
 ROM table to the DSU-120 TRM), not the per-core ROM table documented in
-A720 TRM Table 17-2:
+A720 TRM Table 17-2. The values below are from DSU-120
+TRM `102547_0201_07_en` (r2p1):
 
 | field | value |
 | --- | --- |
 | CIDR0..3 | 0x0D 0x90 0x05 0xB1 (matches TRM core ROM table Component ID 0xB105900D) |
-| PART (PIDR1[3:0]:PIDR0) | 0xE15 |
-| designer | JEP106 bank 0x23 (DES_2=0x4, DES_1=0x3, JEDEC=1, DES_0=0x9) |
-| DEVID.SYSMEM | 0x3 (entries use relative addressing) |
+| full PID | 0x04003BB4E9 |
+| PART (PIDR1[3:0]:PIDR0) | 0x4E9 |
+| designer | JEP106 0x3B (DES_2=0x4, DES_1=0x3, JEDEC=1, DES_0=0xB) |
+| DEVID[5:0] | 0x20 (PRR=1, SYSMEM=0, FORMAT=0) |
 
 The romtable tests assert PART and the designer fields and log-only
 REVISION / REVAND / CMOD / SIZE. The A720 core ROM table variant has
