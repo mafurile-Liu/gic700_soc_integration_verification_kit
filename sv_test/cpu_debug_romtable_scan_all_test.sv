@@ -2,16 +2,12 @@
 `define CPU_DEBUG_ROMTABLE_SCAN_ALL_TEST_SV
 
 //----------------------------------------------------------------------
-// Scan all 6 CPU cluster debugblock ROM tables in one test.
+// Dedicated scan for high-address decode in all CPU clusters.
 //
-// dbg_address_mapping.xlsx / apb_tree_cpu (m18):
-//   clst0..5_debugblock_romtable @ 0x4B00_0000 + n * 0x28_0000 (2.5M)
-// Shared components behind the same tree (logged for reference):
-//   atb_funnel_128 0x4BF0_0000, atb_funnel_64 0x4BF0_1000,
-//   cti_pmu        0x4BF0_2000
-//
-// Per cluster: CIDR0..3 signature check, entry0 read, and a high-address
-// PE3 CTI identity read.
+// The independent clst0..5 ROM table tests already check each DebugBlock
+// ROM table CIDR/entry.  This test only exercises the upper cluster-
+// internal address range: DSU-120 TRM Table 16-2/16-3 places PE3 CTI at
+// +0x270000, the highest CTI page in a four-core cluster block.
 //----------------------------------------------------------------------
 
 class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
@@ -33,35 +29,10 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
 
     virtual task test_body();
         aw_seen = 1; // debug domain test, cpu does not need to run main.cpp
-        `uvm_info("romtable_scan", "begin", UVM_LOW)
+        `uvm_info("romtable_scan", "begin high-address decode scan", UVM_LOW)
 
         for (int c = 0; c < N_CLST; c++) begin
             clst_base = CPU_TREE_BASE + c * CLST_STRIDE;
-
-            DBG_GETREG32(clst_base + 32'hFF0, rd_data); // CIDR0
-            `uvm_info("romtable_scan",
-                      $sformatf("clst%0d @ %08h CIDR0 = %h", c, clst_base, rd_data), UVM_LOW)
-            if (rd_data[7:0] != 8'h0D)
-                `uvm_error("romtable_scan", $sformatf("clst%0d CIDR0 = %h, expected x0D", c, rd_data))
-
-            DBG_GETREG32(clst_base + 32'hFF4, rd_data); // CIDR1
-            `uvm_info("romtable_scan", $sformatf("clst%0d CIDR1 = %h", c, rd_data), UVM_LOW)
-            if (rd_data[7:0] != 8'h90)
-                `uvm_error("romtable_scan", $sformatf("clst%0d CIDR1 = %h, expected x90", c, rd_data))
-
-            DBG_GETREG32(clst_base + 32'hFF8, rd_data); // CIDR2
-            if (rd_data[7:0] != 8'h05)
-                `uvm_error("romtable_scan", $sformatf("clst%0d CIDR2 = %h, expected x05", c, rd_data))
-
-            DBG_GETREG32(clst_base + 32'hFFC, rd_data); // CIDR3
-            if (rd_data[7:0] != 8'hB1)
-                `uvm_error("romtable_scan", $sformatf("clst%0d CIDR3 = %h, expected xB1", c, rd_data))
-
-            DBG_GETREG32(clst_base, rd_data); // entry0
-            `uvm_info("romtable_scan",
-                      $sformatf("clst%0d entry0 = %08h", c, rd_data), UVM_LOW)
-            if (rd_data[1:0] != 2'b11)
-                `uvm_error("romtable_scan", $sformatf("clst%0d entry0 PRESENT is not 0b11", c))
 
             // Exercise the high-address decode inside the cluster block.
             DBG_GETREG32(clst_base + PE3_CTI_OFFSET + 32'hFE0, rd_data);
@@ -83,15 +54,7 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
                                      c, rd_data))
         end
 
-        // shared components of apb_tree_cpu, log only
-        DBG_GETREG32(32'h4BF0_0000 + 32'hFF0, rd_data);
-        `uvm_info("romtable_scan", $sformatf("atb_funnel_128 CIDR0 = %h", rd_data), UVM_LOW)
-        DBG_GETREG32(32'h4BF0_1000 + 32'hFF0, rd_data);
-        `uvm_info("romtable_scan", $sformatf("atb_funnel_64   CIDR0 = %h", rd_data), UVM_LOW)
-        DBG_GETREG32(32'h4BF0_2000 + 32'hFF0, rd_data);
-        `uvm_info("romtable_scan", $sformatf("cti_pmu         CIDR0 = %h", rd_data), UVM_LOW)
-
-        `uvm_info("romtable_scan", "done", UVM_LOW)
+        `uvm_info("romtable_scan", "done high-address decode scan", UVM_LOW)
     endtask
 
 endclass
