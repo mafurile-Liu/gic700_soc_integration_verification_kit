@@ -32,6 +32,7 @@
 `include "cpu_debug_romtable_clst4_test.sv"
 `include "cpu_debug_romtable_clst5_test.sv"
 `include "cpu_debug_romtable_scan_all_test.sv"
+`include "cpu_debug_cti_pmu_test.sv"
 `include "cpu_debug_halt_resume_base_test.sv"
 `include "cpu_debug_halt_resume_clst0_test.sv"
 `include "cpu_debug_halt_resume_clst1_test.sv"

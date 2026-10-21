@@ -75,6 +75,7 @@ CTI.
 | cpu_debug_romtable_clst4_test.sv | same for clst4 |
 | cpu_debug_romtable_clst5_test.sv | same for clst5 |
 | cpu_debug_romtable_scan_all_test.sv | one pass over all 6 clusters + shared funnels/cti_pmu |
+| cpu_debug_cti_pmu_test.sv | CSS600 CTI access test for cti_pmu @ 0x4BF0_2000 |
 | cpu_debug_halt_resume_base_test.sv | shared ROM-walk/CTI halt-resume sequence |
 | cpu_debug_halt_resume_clst0_test.sv | halt and resume one A720 core in clst0 |
 | cpu_debug_halt_resume_clst1_test.sv | halt and resume one A720 core in clst1 |
@@ -100,7 +101,9 @@ endpackage
 ```
 
 Select with the usual `+UVM_TESTNAME=cpu_debug_romtable_clst0_test`
-or `+UVM_TESTNAME=cpu_debug_halt_resume_clst0_test` etc. Each test only
+or `+UVM_TESTNAME=cpu_debug_halt_resume_clst0_test` etc. Select
+`cpu_debug_cti_pmu_test` for the standalone PMU CTI access test. Each
+test only
 needs `cpu_debug_base_test` (temp_data), `aw_seen` from the base test,
 and the `DBG_GETREG32` / `DBG_SETREG32` macros from the existing debug
 env.
