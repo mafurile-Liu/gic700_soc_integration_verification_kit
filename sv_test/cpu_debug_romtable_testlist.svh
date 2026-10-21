@@ -40,6 +40,5 @@
 `include "cpu_debug_halt_resume_clst3_test.sv"
 `include "cpu_debug_halt_resume_clst4_test.sv"
 `include "cpu_debug_halt_resume_clst5_test.sv"
-`include "cpu_debug_halt_resume_scan_all_test.sv"
 
 `endif

@@ -88,7 +88,6 @@ both PIDR and these architecture IDs.
 | cpu_debug_halt_resume_clst3_test.sv | halt and resume one A720 core in clst3 |
 | cpu_debug_halt_resume_clst4_test.sv | halt and resume one A720 core in clst4 |
 | cpu_debug_halt_resume_clst5_test.sv | halt and resume one A720 core in clst5 |
-| cpu_debug_halt_resume_scan_all_test.sv | halt and resume one A720 core in all 6 clusters |
 
 ## Usage
 
