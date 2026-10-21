@@ -54,6 +54,11 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
     localparam bit [31:0] DEBUG_DEVARCH   = 32'h4770_9A15;
     localparam bit [31:0] CTI_DEVTYPE     = 32'h0000_0014;
     localparam bit [31:0] CTI_DEVARCH     = 32'h4770_1A14;
+    // DEVARCH identity mask: ARCHITECT + PRESENT + ARCHITECTURE. The
+    // REVISION nibble [19:16] is architecture-revision metadata that
+    // legitimately differs per component revision, so it is logged but
+    // not scored.
+    localparam bit [31:0] DEVARCH_ID_MASK = 32'hFFF0_FFFF;
     localparam bit [31:0] EDSCR_HDE       = 32'h0000_4000;
     localparam bit [31:0] EDPRCR_CORENPDRQ = 32'h0000_0001;
     localparam int        EDPRSR_HALTED_BIT = 4;
@@ -156,8 +161,9 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
         end
 
         DBG_GETREG32(dbg_base + EDDEVARCH, temp_data);
-        `uvm_info(tag, $sformatf("debug @ %08h DEVARCH = %h", dbg_base, temp_data), UVM_LOW)
-        if (temp_data != DEBUG_DEVARCH) begin
+        `uvm_info(tag, $sformatf("debug @ %08h DEVARCH = %h (REVISION %h)",
+                                 dbg_base, temp_data, temp_data[19:16]), UVM_LOW)
+        if ((temp_data & DEVARCH_ID_MASK) != (DEBUG_DEVARCH & DEVARCH_ID_MASK)) begin
             `uvm_error(tag, $sformatf("debug DEVARCH = %h, expected %08h",
                                       temp_data, DEBUG_DEVARCH))
             path_ok = 0;
@@ -185,8 +191,9 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
         end
 
         DBG_GETREG32(cti_base + 32'hFBC, temp_data);
-        `uvm_info(tag, $sformatf("CTI @ %08h DEVARCH = %h", cti_base, temp_data), UVM_LOW)
-        if (temp_data != CTI_DEVARCH) begin
+        `uvm_info(tag, $sformatf("CTI @ %08h DEVARCH = %h (REVISION %h)",
+                                 cti_base, temp_data, temp_data[19:16]), UVM_LOW)
+        if ((temp_data & DEVARCH_ID_MASK) != (CTI_DEVARCH & DEVARCH_ID_MASK)) begin
             `uvm_error(tag, $sformatf("CTI DEVARCH = %h, expected %08h",
                                       temp_data, CTI_DEVARCH))
             path_ok = 0;
