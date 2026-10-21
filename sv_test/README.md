@@ -60,10 +60,14 @@ TRM `102547_0201_07_en` (r2p1):
 | DEVID[5:0] | 0x20 (PRR=1, SYSMEM=0, FORMAT=0) |
 
 The romtable tests assert PART and the designer fields and log-only
-REVISION / REVAND / CMOD / SIZE. The A720 core ROM table variant has
-PART 0xD81 (PIDR 0x04200BBD81); that distinction only matters if a test
-walks a per-core ROM table. The halt/resume tests avoid that walk and
-use the DSU-120 Table 16-2 fixed offsets.
+REVISION / REVAND / CMOD / SIZE.
+
+A720 core components share Peripheral ID `0x04200BBD81` (PART `0xD81`),
+so PIDR alone does not distinguish Debug from CTI or the core ROM table.
+Use `DEVTYPE`/`DEVARCH`: Debug is `0x15/0x47709A15`, CTI is
+`0x14/0x47701A14`, and the core ROM table is `0x00/0x47700AF7`.
+The halt/resume tests use the DSU-120 Table 16-2 fixed offsets and check
+both PIDR and these architecture IDs.
 
 ## Files
 
@@ -113,7 +117,8 @@ The halt/resume tests use the DSU-120 TRM Table 16-2 fixed cluster
 offsets directly: core0 debug is `+0x90000` and core0 CTI is `+0xF0000`.
 Before target accesses, they request cluster power through
 `DBROM_DBGPCR0/DBGPSR0` and core0 power through
-`CLUSTERROM_DBGPCR0/DBGPSR0`.  They confirm the target PIDR values,
+`CLUSTERROM_DBGPCR0/DBGPSR0`.  They confirm the target PIDR and
+`DEVTYPE/DEVARCH` values,
 configure CTI output triggers 0/1 to channel 0, and poll
 `EDPRSR.HALTED`.  They require the target core to be released from reset
 before starting.  The separate ROM table tests own the DebugBlock ROM
