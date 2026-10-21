@@ -28,6 +28,12 @@ class cpu_debug_romtable_clst2_test extends cpu_debug_base_test;
     virtual task test_body();
         aw_seen = 1; // debug domain test, cpu does not need to run main.cpp
         `uvm_info("clst2_romtable", "begin", UVM_LOW)
+        bakdoor_set_svt_mem(); // Pre-load Trickbox + svt mem data
+        cluster_crg_init(6'b000100);
+        rvbar_init(6'b000100);
+        cluster_crg_rst_init(6'b000100);
+        wait(cpu_vif.debug_pwr_qacceptn[2] == 1);
+        #0.5us;
 
         // ROM table CIDR signature
         DBG_GETREG32(CLST_BASE + 32'hFF0, temp_data);
