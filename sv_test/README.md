@@ -76,7 +76,7 @@ use the DSU-120 Table 16-2 fixed offsets.
 | cpu_debug_romtable_clst4_test.sv | same for clst4 |
 | cpu_debug_romtable_clst5_test.sv | same for clst5 |
 | cpu_debug_romtable_scan_all_test.sv | one pass over all 6 clusters + shared funnels/cti_pmu |
-| cpu_debug_cti_pmu_test.sv | CSS600 CTI access test for cti_pmu @ 0x4BF0_2000 |
+| cpu_debug_cti_pmu_test.sv | CSS600 CTI access test plus clst0 high-address CTI probe |
 | cpu_debug_halt_resume_base_test.sv | shared direct-address CTI halt-resume sequence |
 | cpu_debug_halt_resume_clst0_test.sv | halt and resume one A720 core in clst0 |
 | cpu_debug_halt_resume_clst1_test.sv | halt and resume one A720 core in clst1 |

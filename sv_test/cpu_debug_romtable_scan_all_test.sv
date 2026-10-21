@@ -10,7 +10,8 @@
 //   atb_funnel_128 0x4BF0_0000, atb_funnel_64 0x4BF0_1000,
 //   cti_pmu        0x4BF0_2000
 //
-// Per cluster: CIDR0..3 signature check + entry0 read.
+// Per cluster: CIDR0..3 signature check, entry0 read, and a high-address
+// PE3 CTI identity read.
 //----------------------------------------------------------------------
 
 class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
@@ -19,6 +20,9 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
     localparam bit [31:0] CPU_TREE_BASE = 32'h4B00_0000;
     localparam bit [31:0] CLST_STRIDE   = 32'h0028_0000;
     localparam int        N_CLST        = 6;
+    // DSU-120 TRM Table 16-2/16-3: PE3 CTI is at the high end of a
+    // four-core cluster debugblock. PIDR0/PIDR1 are at +0xFE0/+0xFE4.
+    localparam bit [31:0] PE3_CTI_OFFSET = 32'h0027_0000;
 
     bit [31:0] clst_base;
     bit [31:0] rd_data;
@@ -58,6 +62,25 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
                       $sformatf("clst%0d entry0 = %08h", c, rd_data), UVM_LOW)
             if (rd_data[1:0] != 2'b11)
                 `uvm_error("romtable_scan", $sformatf("clst%0d entry0 PRESENT is not 0b11", c))
+
+            // Exercise the high-address decode inside the cluster block.
+            DBG_GETREG32(clst_base + PE3_CTI_OFFSET + 32'hFE0, rd_data);
+            `uvm_info("romtable_scan",
+                      $sformatf("clst%0d PE3 CTI @ %08h PIDR0 = %h",
+                                c, clst_base + PE3_CTI_OFFSET, rd_data), UVM_LOW)
+            if (rd_data[7:0] != 8'h81)
+                `uvm_error("romtable_scan",
+                           $sformatf("clst%0d PE3 CTI PIDR0 = %h, expected x81",
+                                     c, rd_data))
+
+            DBG_GETREG32(clst_base + PE3_CTI_OFFSET + 32'hFE4, rd_data);
+            `uvm_info("romtable_scan",
+                      $sformatf("clst%0d PE3 CTI @ %08h PIDR1 = %h",
+                                c, clst_base + PE3_CTI_OFFSET, rd_data), UVM_LOW)
+            if (rd_data[7:0] != 8'hBD)
+                `uvm_error("romtable_scan",
+                           $sformatf("clst%0d PE3 CTI PIDR1 = %h, expected xBD",
+                                     c, rd_data))
         end
 
         // shared components of apb_tree_cpu, log only
