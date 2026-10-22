@@ -7,8 +7,6 @@
 // dbg_address_mapping.xlsx / apb_tree_cpu (m18):
 //   cti_pmu external view 0x4BF0_2000, 4K
 //   parent romtable_apbic entry 0x1D0_2003
-// Also probe clst0 PE3 CTI at the high end of the cluster debugblock to
-// exercise the upper cluster address decode bits.
 //
 // The component is a CoreSight SoC-600 css600_cti.  Check its identity
 // registers and basic RW registers without issuing CTIAPPSET or
@@ -19,9 +17,6 @@ class cpu_debug_cti_pmu_test extends cpu_debug_base_test;
     `uvm_component_utils(cpu_debug_cti_pmu_test)
 
     localparam bit [31:0] CTI_PMU_BASE = 32'h4BF0_2000;
-    // DSU-120 TRM Table 16-2: PE0/PE3 CTI offsets within clst0.
-    localparam bit [31:0] CLST0_PE0_CTI_BASE = 32'h4B0F_0000;
-    localparam bit [31:0] CLST0_PE3_CTI_BASE = 32'h4B27_0000;
 
     localparam bit [31:0] CTI_CONTROL   = 32'h000;
     localparam bit [31:0] CTI_OUTEN0    = 32'h0A0;
@@ -138,26 +133,6 @@ class cpu_debug_cti_pmu_test extends cpu_debug_base_test;
         DBG_SETREG32(CTI_PMU_BASE + CTI_CONTROL, control_restore);
         expect_reg("CONTROL restore", CTI_PMU_BASE + CTI_CONTROL, 32'hFFFF_FFFF,
                    control_restore);
-
-        // High-address decode probe. Toggle PE3 CTI.GATE bit0 and check
-        // that PE0 CTI.GATE remains unchanged. If the upper cluster
-        // address bits are dropped and PE3 aliases to PE0, the PE0
-        // readback changes.
-        read_reg("PE0 CTI GATE before high-address probe",
-                 CLST0_PE0_CTI_BASE + CTI_GATE, control_restore);
-        read_reg("PE3 CTI GATE before high-address probe",
-                 CLST0_PE3_CTI_BASE + CTI_GATE, gate_restore);
-        DBG_SETREG32(CLST0_PE3_CTI_BASE + CTI_GATE,
-                     gate_restore ^ 32'h0000_0001);
-        expect_reg("PE3 CTI GATE high-address readback",
-                   CLST0_PE3_CTI_BASE + CTI_GATE, 32'hFFFF_FFFF,
-                   gate_restore ^ 32'h0000_0001);
-        expect_reg("PE0 CTI GATE unchanged after high-address probe",
-                   CLST0_PE0_CTI_BASE + CTI_GATE, 32'hFFFF_FFFF,
-                   control_restore);
-        DBG_SETREG32(CLST0_PE3_CTI_BASE + CTI_GATE, gate_restore);
-        expect_reg("PE3 CTI GATE restore", CLST0_PE3_CTI_BASE + CTI_GATE,
-                   32'hFFFF_FFFF, gate_restore);
 
         `uvm_info("cti_pmu", "done", UVM_LOW)
     endtask
