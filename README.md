@@ -19,6 +19,39 @@ doc/      Architecture_Reference, Register_Reference, Verification_Flow,
 examples/ example_makefile.md, porting_to_arm_delivery.md
 ~~~
 
+## Gray timestamp source/SVA
+
+`tb/timestamp` provides a 31.25 MHz Gray-code timestamp source and a
+destination-side checker.  The source counts once every 32 ns and
+outputs `timestamp_gray`.  The checker decodes Gray in the testbench and
+provides two checks: RTL binary timestamp equals the decoded count, and
+RTL shifted timestamp equals `(decoded count << 5)` for the
+1-GHz-equivalent counter view.
+
+~~~systemverilog
+timestamp_source_if #(.WIDTH(64)) u_ts_source (
+    .rst_n(tb_rst_n)
+);
+
+timestamp_checker_if #(
+    .WIDTH         (64),
+    .SHIFT         (5),
+    .SETTLE_CYCLES (4)
+) u_dsu_ts_checker (
+    .dest_clk             (dut.dsu_clk),
+    .dest_rst_n           (dut.dsu_rst_n),
+    .check_enable         (1'b1),
+    .rtl_binary_timestamp (dut.dsu_timestamp_bin),
+    .rtl_shifted_timestamp(dut.dsu_timestamp_shift),
+    .source_valid         (u_ts_source.source_valid),
+    .source_gray          (u_ts_source.timestamp_gray)
+);
+~~~
+
+Replace `dsu_*` signal paths with the actual DSU/CMN RTL names.  For a
+different destination, instantiate another checker with that
+destination's clock/reset and RTL timestamp signals.
+
 ## API（common/gic_common.S + gic_its.S）
 - Bring-up：gic_init_grp1ns / grp1s / grp0（一次调用：GICD+GICR+CPU 接口）
 - 配置：ppi_config_ns/grp0/1s、spi_config_ns/grp0/1s（运行时算 bank/bit）
