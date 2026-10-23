@@ -13,7 +13,7 @@ class cpu_debug_halt_resume_clst3_test extends cpu_debug_halt_resume_base_test;
         aw_seen = 1; // debug-domain test; CPU main.cpp is not required.
         `uvm_info("clst3_pwrup", "begin", UVM_LOW)
 
-        SETREG32(`X1_CPU_CPU_REG_BASE + 'hE0, 'h3b); // enable cluster3 debug power
+        open_clusters_pwr();
         bakdoor_set_svt_mem(); // Pre-load Trickbox + svt mem data
         cluster_crg_init(6'b001000);
         rvbar_init(6'b001000);

@@ -28,7 +28,7 @@ class cpu_debug_romtable_clst4_test extends cpu_debug_base_test;
     virtual task test_body();
         aw_seen = 1; // debug domain test, cpu does not need to run main.cpp
         `uvm_info("clst4_romtable", "begin", UVM_LOW)
-        SETREG32(`X1_CPU_CPU_REG_BASE + 'hE8, 'h3b); // enable cluster4 debug power
+        open_clusters_pwr();
         bakdoor_set_svt_mem(); // Pre-load Trickbox + svt mem data
         cluster_crg_init(6'b010000);
         rvbar_init(6'b010000);
