@@ -47,7 +47,10 @@ interface timestamp_source_if #(
         end
     end
 
-    always_ff @(posedge timestamp_clk or negedge rst_n) begin
+    // A declaration initializer plus always_ff is rejected by VCS as two
+    // procedural drivers.  This is a TB reference counter, so use a plain
+    // always process to keep the explicit time-zero zero value.
+    always @(posedge timestamp_clk or negedge rst_n) begin
         if (!rst_n)
             binary_count <= '0;
         else if (source_valid)
