@@ -30,4 +30,17 @@
 `define N_PE              24              // 6 clusters x 4 cores
 `define CORES_PER_CLUSTER 4
 
+// Force-connect one DSUL timestamp checker. INDEX must be a compile-time
+// cluster index because it is pasted into the hierarchical cluster name.
+`define CPU_TS_DSUL_CHECKER_CONNECT(index) \
+    begin \
+        force tb_top.ts_dsul_checker.source_valid            = ts_source.source_valid; \
+        force tb_top.ts_dsul_checker.source_gray             = ts_source.timestamp_gray; \
+        force tb_top.ts_dsul_checker.dest_clk                = tb_top.u.dut.u.cluster``index``.u.cpu_cluster_cpu_pwr_domain.u_HUNTER4_wrapper.u_HUNTER4.PERIPHCLK; \
+        force tb_top.ts_dsul_checker.dest_rst_n              = tb_top.u.dut.u.cluster``index``.u.cpu_cluster_cpu_pwr_domain.u_HUNTER4_wrapper.u_HUNTER4.nPERIPHRESET; \
+        force tb_top.ts_dsul_checker.rtl_shifted_timestamp   = tb_top.u.dut.u.cluster``index``.u.cpu_cluster_cpu_pwr_domain.u_HUNTER4_wrapper.u_HUNTER4.CNTVALUEB[63:0]; \
+        force tb_top.ts_dsul_checker.rtl_binary_timestamp    = tb_top.u.dut.u.cluster``index``.u.cpu_cluster_cpu_pwr_domain.u_HUNTER4_wrapper.u_HUNTER4.ts_cnt_bin_sync[63:0]; \
+        force tb_top.ts_dsul_checker.check_enable            = cpu_vif.ts_check_en[index]; \
+    end
+
 `endif
