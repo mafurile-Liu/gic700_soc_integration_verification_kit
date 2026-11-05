@@ -22,8 +22,8 @@ only level-type input.  All mapped output triggers are pulse type.
 | file | purpose |
 | --- | --- |
 | `tb/interfaces/cpu_ect_if.sv` | flattened injection/observation interface |
-| `tb/interfaces/cpu_ect_connect.svh` | DUT hierarchy assigns and plusarg-gated forces |
-| `tb/agents/cpu_ect_agent_pkg.sv` | UVM agent, monitor, driver, scoreboard |
+| `tb/agents/cpu_dbg_ect_agent/cpu_ect_connect.svh` | DUT hierarchy assigns and plusarg-gated forces |
+| `tb/agents/cpu_dbg_ect_agent/cpu_ect_agent_pkg.sv` | UVM agent, monitor, driver, scoreboard |
 | `tb/sequences/cpu_ect_seq_pkg.sv` | pulse and level sequences |
 | `sv_test/cpu_ect_testlist.svh` | CPU ECT regression test list |
 | `sv_test/cpu_ect_eventin_test.sv` | input trigger 0..11 -> channel traversal |

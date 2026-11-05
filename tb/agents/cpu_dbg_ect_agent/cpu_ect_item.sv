@@ -23,6 +23,7 @@ class cpu_ect_item extends uvm_sequence_item;
     `uvm_field_int(pulse_cycles, UVM_ALL_ON)
     `uvm_field_int(hold_cycles, UVM_ALL_ON)
     `uvm_field_int(timeout_cycles, UVM_ALL_ON)
+    `uvm_field_int(timestamp, UVM_DEFAULT)
   `uvm_object_utils_end
 
   function new(string name = "cpu_ect_item");
