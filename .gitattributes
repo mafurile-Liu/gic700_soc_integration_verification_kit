@@ -1,0 +1,7 @@
+# Keep verification text files LF in working trees too.
+*.sv  text eol=lf
+*.svh text eol=lf
+*.f   text eol=lf
+*.mk  text eol=lf
+*.py  text eol=lf
+*.md  text eol=lf
