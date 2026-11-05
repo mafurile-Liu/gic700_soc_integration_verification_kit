@@ -6,7 +6,9 @@ typedef enum int unsigned {
   CPU_ECT_CLST_CH_IN   = 4,
   CPU_ECT_CLST_CH_OUT  = 5,
   CPU_ECT_ASYNC_CH_IN  = 6,
-  CPU_ECT_ASYNC_CH_OUT = 7
+  CPU_ECT_ASYNC_CH_OUT = 7,
+  CPU_ECT_CLST_CH_IN_DRV  = 8,
+  CPU_ECT_ASYNC_CH_IN_DRV = 9
 } cpu_ect_loc_e;
 
 function automatic int unsigned cpu_ect_loc_width(cpu_ect_loc_e loc);
@@ -17,6 +19,8 @@ function automatic int unsigned cpu_ect_loc_width(cpu_ect_loc_e loc);
     CPU_ECT_CTI_CH_OUT   : return 16;
     CPU_ECT_CLST_CH_IN   : return 24;
     CPU_ECT_CLST_CH_OUT  : return 24;
+    CPU_ECT_CLST_CH_IN_DRV  : return 24;
+    CPU_ECT_ASYNC_CH_IN_DRV : return 16;
     CPU_ECT_ASYNC_CH_IN  : return 16;
     CPU_ECT_ASYNC_CH_OUT : return 16;
     default              : return 0;
@@ -39,6 +43,8 @@ function automatic logic cpu_ect_sample_bit(
     CPU_ECT_CTI_CH_IN    : return vif.cti_channel_in[index];
     CPU_ECT_CTI_CH_OUT   : return vif.cti_channel_out[index];
     CPU_ECT_CLST_CH_IN   : return vif.clst_cti_pulse_in[index/4][index%4];
+    CPU_ECT_CLST_CH_IN_DRV  : return vif.clst_cti_pulse_out_drv[index/4][index%4];
+    CPU_ECT_ASYNC_CH_IN_DRV : return vif.asyncbridge_2_ctm_pulse_drv[index];
     CPU_ECT_CLST_CH_OUT  : return vif.clst_cti_pulse_out[index/4][index%4];
     CPU_ECT_ASYNC_CH_IN  : return vif.asyncbridge_2_ctm_pulse[index];
     CPU_ECT_ASYNC_CH_OUT : return vif.ctm_2_asyncbridge_pulse[index];
@@ -55,6 +61,8 @@ function automatic void cpu_ect_drive_bit(
   case (loc)
     CPU_ECT_CTI_EVT_IN : vif.cti_evt_in[index]    = value;
     CPU_ECT_CTI_CH_IN  : vif.cti_channel_in[index] = value;
+    CPU_ECT_CLST_CH_IN_DRV  : vif.clst_cti_pulse_out_drv[index/4][index%4] = value;
+    CPU_ECT_ASYNC_CH_IN_DRV : vif.asyncbridge_2_ctm_pulse_drv[index] = value;
     default: `uvm_warning("CPU_ECT_DRV",
       $sformatf("Location %s is not an injection path", loc.name()))
   endcase

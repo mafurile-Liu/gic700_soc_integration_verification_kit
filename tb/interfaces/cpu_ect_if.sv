@@ -19,10 +19,12 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
 
   // Six CPU-cluster CTI channel views (4 bits each).
   logic [5:0][3:0] clst_cti_pulse_out;
+  logic [5:0][3:0] clst_cti_pulse_out_drv = '0;
   logic [5:0][3:0] clst_cti_pulse_in;
 
   // CPU CTM async-bridge views.
   logic [15:0] asyncbridge_2_ctm_pulse;
+  logic [15:0] asyncbridge_2_ctm_pulse_drv = '0;
   logic [15:0] ctm_2_asyncbridge_pulse;
 
   modport drv_mp(
@@ -30,6 +32,8 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
     input  rst_n,
     output cti_evt_in,
     output cti_channel_in,
+    output clst_cti_pulse_out_drv,
+    output asyncbridge_2_ctm_pulse_drv,
     input  cti_evt_out,
     input  cti_channel_out,
     input  clst_cti_pulse_out,
@@ -46,8 +50,10 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
     input cti_channel_out,
     input cti_channel_in,
     input clst_cti_pulse_out,
+    input clst_cti_pulse_out_drv,
     input clst_cti_pulse_in,
     input asyncbridge_2_ctm_pulse,
+    input asyncbridge_2_ctm_pulse_drv,
     input ctm_2_asyncbridge_pulse
   );
 

@@ -98,6 +98,24 @@ assign cpu_ect_if.clst_cti_pulse_in[4] =
 assign cpu_ect_if.clst_cti_pulse_in[5] =
   sys_cpu_pwr_wrap.clst5_cti_pulse_in[3:0];
 
+// ---------------- CPU-cluster CTM input injection ----------------
+// VCS resolves tb_top-local intermediates reliably in hierarchical forces.
+logic [5:0][3:0] cpu_clst_cti_pulse_out_force;
+logic [15:0] cpu_asyncbridge_2_ctm_force;
+assign cpu_clst_cti_pulse_out_force = cpu_ect_if.clst_cti_pulse_out_drv;
+assign cpu_asyncbridge_2_ctm_force = cpu_ect_if.asyncbridge_2_ctm_pulse_drv;
+
+initial begin
+  if ($test$plusargs("CPU_ECT_ENABLE_SOURCE_FORCE")) begin
+    force sys_cpu_pwr_wrap.clst0_cti_pulse_out[3:0] = cpu_clst_cti_pulse_out_force[0];
+    force sys_cpu_pwr_wrap.clst1_cti_pulse_out[3:0] = cpu_clst_cti_pulse_out_force[1];
+    force sys_cpu_pwr_wrap.clst2_cti_pulse_out[3:0] = cpu_clst_cti_pulse_out_force[2];
+    force sys_cpu_pwr_wrap.clst3_cti_pulse_out[3:0] = cpu_clst_cti_pulse_out_force[3];
+    force sys_cpu_pwr_wrap.clst4_cti_pulse_out[3:0] = cpu_clst_cti_pulse_out_force[4];
+    force sys_cpu_pwr_wrap.clst5_cti_pulse_out[3:0] = cpu_clst_cti_pulse_out_force[5];
+    force sys_cpu_pwr_wrap.asyncbridge_2_ctm_pulse[15:0] = cpu_asyncbridge_2_ctm_force;
+  end
+end
 // ---------------- CPU CTM async-bridge views ----------------
 assign cpu_ect_if.asyncbridge_2_ctm_pulse =
   sys_cpu_pwr_wrap.asyncbridge_2_ctm_pulse[15:0];

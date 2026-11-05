@@ -70,6 +70,20 @@ package cpu_test_pkg;
 endpackage
 ~~~
 
+## Current cases
+
+| test | route |
+| --- | --- |
+| `cpu_ect_eventin_test` | CTI input trigger 0..11 -> channel 0..11 |
+| `cpu_ect_evtout0_15_test` | channel 0..15 -> CTI output trigger 0..15 |
+| `cpu_ect_evtout18_dbm_test` | channel0 -> CTI output trigger18 / DBM |
+| `cpu_ect_clst0_chin_to_syscti_test` | cluster0 channel0..3 -> system CTI channel0..3 |
+| `cpu_ect_asyncbridge_chin_to_syscti_test` | async bridge channel0..15 -> system CTI channel0..15 |
+
+The cluster case assumes the 4-bit cluster CTM port maps to system CTI
+channels 0..3.  If the SoC integration uses a different channel translation,
+update that test to the actual mapping.
+
 ## Mapping notes
 
 `sys_cpu` rows 42/43 currently repeat the GPU hierarchy names.  They are not
