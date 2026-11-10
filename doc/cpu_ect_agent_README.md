@@ -25,10 +25,10 @@ only level-type input.  All mapped output triggers are pulse type.
 | `tb/agents/cpu_dbg_ect_agent/cpu_ect_connect.svh` | DUT hierarchy assigns and plusarg-gated forces |
 | `tb/agents/cpu_dbg_ect_agent/cpu_ect_agent_pkg.sv` | UVM agent, monitor, driver, scoreboard |
 | `tb/sequences/cpu_ect_seq_pkg.sv` | pulse and level sequences |
-| `sv_test/cpu_ect_testlist.svh` | CPU ECT regression test list |
-| `sv_test/cpu_ect_eventin_test.sv` | input trigger 0..11 -> channel traversal |
-| `sv_test/cpu_ect_evtout0_15_test.sv` | channel -> output 0..15 traversal |
-| `sv_test/cpu_ect_evtout18_dbm_test.sv` | channel0 -> DBM output18 |
+| `sv_test/ECT/cpu_ect_testlist.svh` | CPU ECT regression test list |
+| `sv_test/ECT/cpu_ect_eventin_test.sv` | input trigger 0..11 -> channel traversal |
+| `sv_test/ECT/cpu_ect_evtout0_15_test.sv` | channel -> output 0..15 traversal |
+| `sv_test/ECT/cpu_ect_evtout18_dbm_test.sv` | channel0 -> DBM output18 |
 
 ## TB integration
 
@@ -66,7 +66,7 @@ package cpu_test_pkg;
     import uvm_pkg::*;
     `include "cpu_base_test.sv"
     `include "cpu_debug_base_test.sv"
-    `include "cpu_ect_testlist.svh"
+    `include "sv_test/ECT/cpu_ect_testlist.svh"
 endpackage
 ~~~
 

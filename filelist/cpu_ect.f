@@ -7,3 +7,6 @@ tb/agents/cpu_dbg_ect_agent/cpu_ect_agent_pkg.sv
 
 +incdir+tb/sequences
 tb/sequences/cpu_ect_seq_pkg.sv
+
+// CPU ECT tests are included from the external CPU test package.
++incdir+sv_test/ECT

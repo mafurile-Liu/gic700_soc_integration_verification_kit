@@ -9,7 +9,7 @@
 //       import uvm_pkg::*;
 //       `include "cpu_base_test.sv"          // must come first
 //       `include "cpu_debug_base_test.sv"    // must come before testlist
-//       `include "cpu_debug_romtable_testlist.svh"
+//       `include "sv_test/debug_access/cpu_debug_romtable_testlist.svh"
 //   endpackage
 //
 // Requirements:
