@@ -35,10 +35,10 @@ class cpu_ect_evtout18_dbm_test extends cpu_ect_base_test;
                      32'h0000_0001, 32'h0000_0001);
 
         agent.scoreboard.expect_event(
-            .loc(CPU_ECT_CTI_CH_IN), .index(0),
+            .loc(CPU_ECT_CTI_CH_IN_DRV), .index(0),
             .expected_value(1'b1), .timeout_cycles(1000));
         agent.scoreboard.expect_event(
-            .loc(CPU_ECT_CTI_CH_IN), .index(0),
+            .loc(CPU_ECT_CTI_CH_IN_DRV), .index(0),
             .expected_value(1'b0), .timeout_cycles(1000));
 
         agent.scoreboard.expect_event(
@@ -56,7 +56,7 @@ class cpu_ect_evtout18_dbm_test extends cpu_ect_base_test;
 
         pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
         if (!pulse_seq.randomize() with {
-                loc          == CPU_ECT_CTI_CH_IN;
+                loc          == CPU_ECT_CTI_CH_IN_DRV;
                 index        == 0;
                 value        == 1'b1;
                 pulse_cycles == 2;

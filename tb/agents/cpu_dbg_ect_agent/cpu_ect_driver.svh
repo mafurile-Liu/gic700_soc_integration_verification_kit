@@ -39,14 +39,14 @@ class cpu_ect_driver extends uvm_driver #(cpu_ect_item);
              item.pulse_cycles : cfg.default_pulse_cycles;
 
     case (item.op)
-      CPU_ECT_OP_PULSE: begin
+      cpu_ect_item::CPU_ECT_OP_PULSE: begin
         cpu_ect_drive_bit(vif, item.loc, item.index, 1'b1);
         repeat (cycles) @(posedge vif.clk);
         cpu_ect_drive_bit(vif, item.loc, item.index, 1'b0);
         @(posedge vif.clk);
       end
 
-      CPU_ECT_OP_LEVEL: begin
+      cpu_ect_item::CPU_ECT_OP_LEVEL: begin
         int unsigned hold = (item.hold_cycles != 0) ?
                             item.hold_cycles : 1;
         cpu_ect_drive_bit(vif, item.loc, item.index, item.value);

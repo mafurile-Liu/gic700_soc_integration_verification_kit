@@ -15,7 +15,8 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
 
   // css600_cti_com channel views.
   logic [15:0] cti_channel_out; // CTI -> CTM
-  logic [15:0] cti_channel_in;  // CTM -> CTI (agent injection)
+  logic [15:0] cti_channel_in;      // CTM -> CTI observation
+  logic [15:0] cti_channel_in_drv = '0; // agent injection
 
   // Six CPU-cluster CTI channel views (4 bits each).
   logic [5:0][3:0] clst_cti_pulse_out;
@@ -31,7 +32,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
     input  clk,
     input  rst_n,
     output cti_evt_in,
-    output cti_channel_in,
+    output cti_channel_in_drv,
     output clst_cti_pulse_out_drv,
     output asyncbridge_2_ctm_pulse_drv,
     input  cti_evt_out,
@@ -49,6 +50,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
     input cti_evt_out,
     input cti_channel_out,
     input cti_channel_in,
+    input cti_channel_in_drv,
     input clst_cti_pulse_out,
     input clst_cti_pulse_out_drv,
     input clst_cti_pulse_in,

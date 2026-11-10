@@ -10,35 +10,42 @@
 // +CPU_ECT_ENABLE_SOURCE_FORCE.
 // ------------------------------------------------------------------
 
+// tb_top-local copies used as force RHS.  Some VCS versions do not resolve
+// interface variables directly in hierarchical force statements.
+logic [11:0] cpu_cti_evt_in_force;
+logic [15:0] cpu_cti_channel_in_force;
+assign cpu_cti_evt_in_force = cpu_ect_if.cti_evt_in;
+assign cpu_cti_channel_in_force = cpu_ect_if.cti_channel_in_drv;
+
 // ---------------- CTI event_in: agent injection ----------------
 initial begin
   if ($test$plusargs("CPU_ECT_ENABLE_SOURCE_FORCE")) begin
     force sys_cpu_pwr_wrap.cmn2cti_event_pulse =
-      cpu_ect_if.cti_evt_in[0];
+      cpu_cti_evt_in_force[0];
 
     force sys_cpu_pwr_wrap.pmu_m14_trig_out[1:0] =
-      cpu_ect_if.cti_evt_in[2:1];
+      cpu_cti_evt_in_force[2:1];
 
     force sys_cpu_pwr_wrap.pmu_m15_trig_out[1:0] =
-      cpu_ect_if.cti_evt_in[4:3];
+      cpu_cti_evt_in_force[4:3];
 
     force sys_cpu_pwr_wrap.pmu_m16_trig_out[1:0] =
-      cpu_ect_if.cti_evt_in[6:5];
+      cpu_cti_evt_in_force[6:5];
 
     force sys_cpu_pwr_wrap.pmu_m17_trig_out[1:0] =
-      cpu_ect_if.cti_evt_in[8:7];
+      cpu_cti_evt_in_force[8:7];
 
     force sys_cpu_pwr_wrap.gicd_pmu_int_event =
-      cpu_ect_if.cti_evt_in[9];
+      cpu_cti_evt_in_force[9];
 
     force sys_cpu_pwr_wrap.soc_tcu_pmusnapshot =
-      cpu_ect_if.cti_evt_in[10];
+      cpu_cti_evt_in_force[10];
 
     force sys_cpu_pwr_wrap.npu_tcu_pmusnapshot =
-      cpu_ect_if.cti_evt_in[11];
+      cpu_cti_evt_in_force[11];
 
     force sys_cpu_pwr_wrap.cti_channel_in[15:0] =
-      cpu_ect_if.cti_channel_in;
+      cpu_cti_channel_in_force;
   end
 end
 

@@ -1,6 +1,10 @@
 `ifndef CPU_ECT_TESTLIST_SVH
 `define CPU_ECT_TESTLIST_SVH
 
+import uvm_pkg::*;
+import cpu_ect_agent_pkg::*;
+import cpu_ect_seq_pkg::*;
+
 // Include this list in the external CPU test package after
 // cpu_base_test/cpu_debug_base_test are compiled.
 `include "cpu_ect_base_test.sv"
