@@ -44,9 +44,12 @@ initial begin
 end
 ~~~
 
-Include the connect file inside `tb_top` after the interface instance:
+Include the connect file inside `tb_top` after the interface instance.
+The DUT hierarchy is controlled by `` `CPU_ECT_DUT_HIER ``.  The default is
+`tb_top.u_dut`; define a different hierarchy before the include if needed.
 
 ~~~systemverilog
+// `define CPU_ECT_DUT_HIER tb_top.u_dut_soc_cpu
 `include "cpu_ect_connect.svh"
 ~~~
 
