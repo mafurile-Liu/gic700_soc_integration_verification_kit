@@ -3,7 +3,7 @@ class cpu_ect_cfg extends uvm_object;
 
   uvm_active_passive_enum is_active = UVM_ACTIVE;
   int unsigned default_pulse_cycles       = 2;
-  int unsigned default_timeout_cycles     = 1000;
+  int unsigned default_timeout_cycles     = 100;
   bit          enable_transition_check    = 1'b1;
 
   `uvm_object_utils_begin(cpu_ect_cfg)

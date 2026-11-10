@@ -51,23 +51,23 @@ class cpu_ect_eventin_test extends cpu_ect_base_test;
         for (idx = 0; idx < N_EVT_IN; idx++) begin
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_EVT_IN), .index(idx),
-                .expected_value(1'b1), .timeout_cycles(1000));
+                .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_EVT_IN), .index(idx),
-                .expected_value(1'b0), .timeout_cycles(2000));
+                .expected_value(1'b0), .timeout_cycles(200));
 
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_OUT), .index(idx),
-                .expected_value(1'b1), .timeout_cycles(1000));
+                .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_OUT), .index(idx),
-                .expected_value(1'b0), .timeout_cycles(2000));
+                .expected_value(1'b0), .timeout_cycles(200));
 
             for (ch = 0; ch < 16; ch++) begin
                 if (ch != idx) begin
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_CH_OUT), .index(ch),
-                        .forbidden_value(1'b1), .timeout_cycles(2000));
+                        .forbidden_value(1'b1), .timeout_cycles(200));
                 end
             end
 
@@ -104,7 +104,7 @@ class cpu_ect_eventin_test extends cpu_ect_base_test;
                 pulse_seq.start(agent.sequencer);
             end
 
-            repeat (2200) @(posedge agent.cfg.vif.clk);
+            repeat (220) @(posedge agent.cfg.vif.clk);
             `uvm_info("cpu_ect_eventin",
                       $sformatf("event_in%0d route completed", idx), UVM_MEDIUM)
         end

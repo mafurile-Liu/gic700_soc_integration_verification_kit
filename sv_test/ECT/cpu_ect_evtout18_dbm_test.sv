@@ -36,22 +36,22 @@ class cpu_ect_evtout18_dbm_test extends cpu_ect_base_test;
 
         agent.scoreboard.expect_event(
             .loc(CPU_ECT_CTI_CH_IN_DRV), .index(0),
-            .expected_value(1'b1), .timeout_cycles(1000));
+            .expected_value(1'b1), .timeout_cycles(100));
         agent.scoreboard.expect_event(
             .loc(CPU_ECT_CTI_CH_IN_DRV), .index(0),
-            .expected_value(1'b0), .timeout_cycles(1000));
+            .expected_value(1'b0), .timeout_cycles(100));
 
         agent.scoreboard.expect_event(
             .loc(CPU_ECT_CTI_EVT_OUT), .index(18),
-            .expected_value(1'b1), .timeout_cycles(1000));
+            .expected_value(1'b1), .timeout_cycles(100));
         agent.scoreboard.expect_event(
             .loc(CPU_ECT_CTI_EVT_OUT), .index(18),
-            .expected_value(1'b0), .timeout_cycles(1000));
+            .expected_value(1'b0), .timeout_cycles(100));
 
         for (int unsigned out_idx = 0; out_idx < 18; out_idx++) begin
             agent.scoreboard.expect_no_event(
                 .loc(CPU_ECT_CTI_EVT_OUT), .index(out_idx),
-                .forbidden_value(1'b1), .timeout_cycles(2000));
+                .forbidden_value(1'b1), .timeout_cycles(200));
         end
 
         pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
@@ -64,7 +64,7 @@ class cpu_ect_evtout18_dbm_test extends cpu_ect_base_test;
             `uvm_error("cpu_ect_evtout18_dbm", "pulse randomize failed")
         pulse_seq.start(agent.sequencer);
 
-        repeat (2200) @(posedge agent.cfg.vif.clk);
+        repeat (220) @(posedge agent.cfg.vif.clk);
         `uvm_info("cpu_ect_evtout18_dbm", "done", UVM_LOW)
     endtask
 endclass

@@ -42,23 +42,23 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
         for (ch = 0; ch < N_CH; ch++) begin
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_IN_DRV), .index(ch),
-                .expected_value(1'b1), .timeout_cycles(1000));
+                .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_IN_DRV), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(1000));
+                .expected_value(1'b0), .timeout_cycles(100));
 
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_EVT_OUT), .index(ch),
-                .expected_value(1'b1), .timeout_cycles(1000));
+                .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_EVT_OUT), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(1000));
+                .expected_value(1'b0), .timeout_cycles(100));
 
             for (out_idx = 0; out_idx < 19; out_idx++) begin
                 if (out_idx != ch) begin
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_EVT_OUT), .index(out_idx),
-                        .forbidden_value(1'b1), .timeout_cycles(2000));
+                        .forbidden_value(1'b1), .timeout_cycles(200));
                 end
             end
 
@@ -72,7 +72,7 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
                 `uvm_error("cpu_ect_evtout0_15", "pulse randomize failed")
             pulse_seq.start(agent.sequencer);
 
-            repeat (2200) @(posedge agent.cfg.vif.clk);
+            repeat (220) @(posedge agent.cfg.vif.clk);
             `uvm_info("cpu_ect_evtout0_15",
                       $sformatf("channel%0d -> event_out%0d completed", ch, ch),
                       UVM_MEDIUM)

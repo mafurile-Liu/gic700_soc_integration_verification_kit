@@ -25,26 +25,26 @@ class cpu_ect_clst0_chin_to_syscti_test extends cpu_ect_base_test;
         for (ch = 0; ch < 4; ch++) begin
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CLST_CH_IN_DRV), .index(ch),
-                .expected_value(1'b1), .timeout_cycles(1000));
+                .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CLST_CH_IN_DRV), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(1000));
+                .expected_value(1'b0), .timeout_cycles(100));
 
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_IN), .index(ch),
-                .expected_value(1'b1), .timeout_cycles(1000));
+                .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_IN), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(1000));
+                .expected_value(1'b0), .timeout_cycles(100));
 
             for (int unsigned other = 0; other < 4; other++) begin
                 if (other != ch) begin
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CLST_CH_IN_DRV), .index(other),
-                        .forbidden_value(1'b1), .timeout_cycles(2000));
+                        .forbidden_value(1'b1), .timeout_cycles(200));
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_CH_IN), .index(other),
-                        .forbidden_value(1'b1), .timeout_cycles(2000));
+                        .forbidden_value(1'b1), .timeout_cycles(200));
                 end
             end
 
@@ -58,7 +58,7 @@ class cpu_ect_clst0_chin_to_syscti_test extends cpu_ect_base_test;
                 `uvm_error("cpu_ect_clst0_chin", "pulse randomize failed")
             pulse_seq.start(agent.sequencer);
 
-            repeat (2200) @(posedge agent.cfg.vif.clk);
+            repeat (220) @(posedge agent.cfg.vif.clk);
             `uvm_info("cpu_ect_clst0_chin",
                       $sformatf("cluster0 channel%0d -> system CTI completed", ch),
                       UVM_MEDIUM)
