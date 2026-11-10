@@ -17,7 +17,7 @@ class cpu_ect_agent extends uvm_agent;
       cfg = cpu_ect_cfg::type_id::create("cfg");
     end
     if (cfg.vif == null &&
-        !uvm_config_db#(virtual cpu_ect_if)::get(this, "", "vif", cfg.vif)) begin
+        !uvm_config_db#(virtual cpu_ect_if)::get(this, "", "ect_vif", cfg.vif)) begin
       `uvm_fatal("CPU_ECT_AGENT", "cpu_ect_if virtual interface not found")
     end
     uvm_config_db#(cpu_ect_cfg)::set(this, "*", "cfg", cfg);

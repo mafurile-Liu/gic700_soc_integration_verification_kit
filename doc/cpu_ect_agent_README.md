@@ -40,7 +40,7 @@ cpu_ect_if cpu_ect_if(.clk(cpu_clk), .rst_n(tb_rst_n));
 
 initial begin
     uvm_config_db#(virtual cpu_ect_if)::set(
-        null, "uvm_test_top.agent", "vif", cpu_ect_if);
+        null, "*", "ect_vif", cpu_ect_if);
 end
 ~~~
 

@@ -16,7 +16,7 @@ class cpu_ect_driver extends uvm_driver #(cpu_ect_item);
       cfg = cpu_ect_cfg::type_id::create("cfg");
     end
     if (cfg.vif == null &&
-        !uvm_config_db#(virtual cpu_ect_if)::get(this, "", "vif", cfg.vif)) begin
+        !uvm_config_db#(virtual cpu_ect_if)::get(this, "", "ect_vif", cfg.vif)) begin
       `uvm_fatal("CPU_ECT_DRV", "cpu_ect_if virtual interface not found")
     end
     vif = cfg.vif;
