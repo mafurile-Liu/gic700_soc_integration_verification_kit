@@ -1,6 +1,4 @@
 // CPU subsystem ECT verification components.
-// Allow XMR into unnamed generate blocks used by CPU RTL.
-+v2k_generate
 // The interface must be compiled before cpu_ect_agent_pkg.
 tb/interfaces/cpu_ect_if.sv
 

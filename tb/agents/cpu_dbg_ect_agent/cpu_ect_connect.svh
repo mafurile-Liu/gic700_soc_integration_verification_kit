@@ -83,9 +83,9 @@ assign cpu_ect_if.cti_evt_out[13:10] =
 assign cpu_ect_if.cti_evt_out[17:14] =
   `CPU_ECT_DUT_HIER.u_pmu_m17.cti_trig_in[3:0];
 
-// Mapping records output18 with cti_trig_in[3:0]; this agent uses bit0.
+// Latest mapping: event_out18 is the DBM cfg-bus trigger.
 assign cpu_ect_if.cti_evt_out[18] =
-  `CPU_ECT_DUT_HIER.u_pmu_m18.cti_trig_in[0];
+  `CPU_ECT_DUT_HIER.u_dbm_cfgbus.cti_trig_i;
 assign cpu_ect_if.cti_evt_out[19] =
   `CPU_ECT_DUT_HIER.u_ep2e_soc_tcu_pmusnapshot.pulse_in[0];
 

@@ -7,7 +7,7 @@
 // Routes:
 //   channel[0] -> event_out[16] / pmu_m17.cti_trig_in[2]
 //   channel[1] -> event_out[17] / pmu_m17.cti_trig_in[3]
-//   channel[2] -> event_out[18] / pmu_m18.cti_trig_in[0]
+//   channel[2] -> event_out[18] / u_dbm_cfgbus.cti_trig_i
 //   channel[3] -> event_out[19] / soc TCU pmusnapshot async pulse
 //   channel[4] -> event_out[20] / NPU TCU pmusnapshot async pulse
 //----------------------------------------------------------------------
