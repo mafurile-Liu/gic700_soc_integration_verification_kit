@@ -2,7 +2,7 @@
 `define CPU_ECT_EVTOUT16_20_TEST_SV
 
 //----------------------------------------------------------------------
-// CPU CTI channel -> event_out group 16..20.
+// cp2cp async-bridge pulse -> CPU CTI channel -> event_out group 16..20.
 //
 // Routes:
 //   channel[0] -> event_out[16] / pmu_m17.cti_trig_in[2]
@@ -53,10 +53,10 @@ class cpu_ect_evtout16_20_test extends cpu_ect_base_test;
             out_idx = ch + 16;
 
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_CTI_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_CTI_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b0), .timeout_cycles(100));
 
             agent.scoreboard.expect_event(
@@ -76,7 +76,7 @@ class cpu_ect_evtout16_20_test extends cpu_ect_base_test;
 
             pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
             if (!pulse_seq.randomize() with {
-                    loc          == CPU_ECT_CTI_CH_IN_DRV;
+                    loc          == CPU_ECT_ASYNC_CHIN_DRV;
                     index        == ch;
                     value        == 1'b1;
                     pulse_cycles == 2;

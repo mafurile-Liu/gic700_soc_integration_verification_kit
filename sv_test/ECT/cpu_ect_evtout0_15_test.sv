@@ -2,7 +2,7 @@
 `define CPU_ECT_EVTOUT0_15_TEST_SV
 
 //----------------------------------------------------------------------
-// CPU CTI channel_in -> event_out direct-map traversal, outputs 0..15.
+// cp2cp async-bridge pulse -> CPU CTI channel -> event_out direct-map traversal, outputs 0..15.
 //
 // Outputs 0/1 are handshake.  Their acks are mandatory.  Outputs 2..15
 // are pulse outputs.
@@ -41,10 +41,10 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
 
         for (ch = 0; ch < N_CH; ch++) begin
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_CTI_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_CTI_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b0), .timeout_cycles(100));
 
             agent.scoreboard.expect_event(
@@ -73,7 +73,7 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
 
             pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
             if (!pulse_seq.randomize() with {
-                    loc          == CPU_ECT_CTI_CH_IN_DRV;
+                    loc          == CPU_ECT_ASYNC_CHIN_DRV;
                     index        == ch;
                     value        == 1'b1;
                     pulse_cycles == 2;
