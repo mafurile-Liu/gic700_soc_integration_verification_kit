@@ -90,8 +90,5 @@ update that test to the actual mapping.
 
 ## Mapping notes
 
-Latest system CTI channel paths are
-`u_css600_ctm_com.channel_out[111:96]` (CTI -> CTM) and
-`u_css600_ctm_com.channel_in[111:96]` (CTM -> CTI).  The async transmitter
-and receiver paths use `u_cp2cp_async_trans.pulse_out[15:0]` and
-`u_cp2cp_async_rec.pulse_in[15:0]`.
+Latest system CTI channel paths are `u_css600_cti_com.event_out[15:0]` (CTI -> CTM)
+and `u_css600_cti_com.event_in[15:0]` (CTM -> CTI).
