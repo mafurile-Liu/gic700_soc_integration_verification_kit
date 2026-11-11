@@ -12,7 +12,8 @@ typedef enum int unsigned {
   CPU_ECT_CLST_CHOUT_DRV   = 10,
   CPU_ECT_ASYNC_CHOUT      = 11,
   CPU_ECT_ASYNC_CHIN       = 12,
-  CPU_ECT_ASYNC_CHIN_DRV   = 13
+  CPU_ECT_ASYNC_CHIN_DRV   = 13,
+  CPU_ECT_CLST_CHIN        = 14
 } cpu_ect_loc_e;
 
 function automatic int unsigned cpu_ect_loc_width(cpu_ect_loc_e loc);
@@ -27,6 +28,7 @@ function automatic int unsigned cpu_ect_loc_width(cpu_ect_loc_e loc);
     CPU_ECT_CLST_CHOUT      : return 24;
     CPU_ECT_CLST_CHOUT_ACK  : return 24;
     CPU_ECT_CLST_CHINACK    : return 24;
+    CPU_ECT_CLST_CHIN       : return 24;
     CPU_ECT_CLST_CHOUT_DRV  : return 24;
     CPU_ECT_ASYNC_CHOUT     : return 16;
     CPU_ECT_ASYNC_CHIN      : return 16;
@@ -66,6 +68,7 @@ function automatic logic cpu_ect_sample_bit(
     CPU_ECT_CLST_CHOUT      : return vif.clst_ctichout[index/4][index%4];
     CPU_ECT_CLST_CHOUT_ACK  : return vif.clst_ctichoutack[index/4][index%4];
     CPU_ECT_CLST_CHINACK    : return vif.clst_ctichinack[index/4][index%4];
+    CPU_ECT_CLST_CHIN       : return vif.clst_ctichin[index/4][index%4];
     CPU_ECT_CLST_CHOUT_DRV  : return vif.clst_ctichout_drv[index/4][index%4];
     CPU_ECT_ASYNC_CHOUT     : return vif.cp2cp_async_pulse_out[index];
     CPU_ECT_ASYNC_CHIN      : return vif.cp2cp_async_pulse_in[index];

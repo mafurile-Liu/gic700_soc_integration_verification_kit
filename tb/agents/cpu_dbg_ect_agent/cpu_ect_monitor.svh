@@ -26,7 +26,7 @@ class cpu_ect_monitor extends uvm_monitor;
   endfunction
 
   virtual task run_phase(uvm_phase phase);
-    cpu_ect_loc_e monitored_locs[14] = '{
+    cpu_ect_loc_e monitored_locs[15] = '{
       CPU_ECT_CTI_EVT_IN,
       CPU_ECT_CTI_EVT_IN_ACK,
       CPU_ECT_CTI_EVT_OUT,

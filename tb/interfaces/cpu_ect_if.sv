@@ -26,6 +26,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
   // Six CPU-cluster debug-block handshake channel views (4 bits each).
   logic [5:0][3:0] clst_ctichout;
   logic [5:0][3:0] clst_ctichoutack;
+  logic [5:0][3:0] clst_ctichin;
   logic [5:0][3:0] clst_ctichinack;
   logic [5:0][3:0] clst_ctichout_drv = '0;
 
@@ -49,6 +50,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
     input  cti_channel_in,
     input  clst_ctichout,
     input  clst_ctichoutack,
+    input  clst_ctichin,
     input  clst_ctichinack,
     input  cp2cp_async_pulse_out,
     input  cp2cp_async_pulse_in
@@ -67,6 +69,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
     input cti_channel_in_drv,
     input clst_ctichout,
     input clst_ctichoutack,
+    input clst_ctichin,
     input clst_ctichinack,
     input clst_ctichout_drv,
     input cp2cp_async_pulse_out,

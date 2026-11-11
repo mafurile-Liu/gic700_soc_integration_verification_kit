@@ -126,6 +126,18 @@ assign cpu_ect_if.clst_ctichoutack[4] =
 assign cpu_ect_if.clst_ctichoutack[5] =
   `CPU_ECT_DUT_HIER.u_cluster5.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHOUTACK[3:0];
 
+assign cpu_ect_if.clst_ctichin[0] =
+  `CPU_ECT_DUT_HIER.u_cluster0.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHIN[3:0];
+assign cpu_ect_if.clst_ctichin[1] =
+  `CPU_ECT_DUT_HIER.u_cluster1.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHIN[3:0];
+assign cpu_ect_if.clst_ctichin[2] =
+  `CPU_ECT_DUT_HIER.u_cluster2.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHIN[3:0];
+assign cpu_ect_if.clst_ctichin[3] =
+  `CPU_ECT_DUT_HIER.u_cluster3.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHIN[3:0];
+assign cpu_ect_if.clst_ctichin[4] =
+  `CPU_ECT_DUT_HIER.u_cluster4.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHIN[3:0];
+assign cpu_ect_if.clst_ctichin[5] =
+  `CPU_ECT_DUT_HIER.u_cluster5.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHIN[3:0];
 assign cpu_ect_if.clst_ctichinack[0] =
   `CPU_ECT_DUT_HIER.u_cluster0.u_cpu_cluster_cpu_pwr_domain.u_HUNTER4_DEBUG_BLOCK_wrapper.u_HUNTER4_DEBUG_BLOCK.CTICHINACK[3:0];
 assign cpu_ect_if.clst_ctichinack[1] =
