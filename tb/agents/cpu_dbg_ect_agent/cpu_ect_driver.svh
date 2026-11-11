@@ -33,10 +33,14 @@ class cpu_ect_driver extends uvm_driver #(cpu_ect_item);
 
   local task drive_item(cpu_ect_item item);
     int unsigned cycles;
+    int unsigned timeout;
+    bit ack_seen;
 
     if (item == null) return;
     cycles = (item.pulse_cycles != 0) ?
              item.pulse_cycles : cfg.default_pulse_cycles;
+    timeout = (item.timeout_cycles != 0) ?
+              item.timeout_cycles : cfg.default_timeout_cycles;
 
     case (item.op)
       cpu_ect_item::CPU_ECT_OP_PULSE: begin
@@ -51,6 +55,29 @@ class cpu_ect_driver extends uvm_driver #(cpu_ect_item);
                             item.hold_cycles : 1;
         cpu_ect_drive_bit(vif, item.loc, item.index, item.value);
         repeat (hold) @(posedge vif.clk);
+      end
+
+      cpu_ect_item::CPU_ECT_OP_HANDSHAKE: begin
+        if (!cpu_ect_ack_exists(item.loc, item.index)) begin
+          `uvm_error("CPU_ECT_DRV", $sformatf(
+            "No handshake ack mapped: loc=%s index=%0d",
+            item.loc.name(), item.index))
+        end else begin
+          cpu_ect_drive_bit(vif, item.loc, item.index, 1'b1);
+          ack_seen = 1'b0;
+          for (int unsigned cycle = 0;
+               cycle < timeout && !ack_seen; cycle++) begin
+            @(posedge vif.clk);
+            ack_seen = cpu_ect_sample_ack(vif, item.loc, item.index);
+          end
+          cpu_ect_drive_bit(vif, item.loc, item.index, 1'b0);
+          if (!ack_seen) begin
+            `uvm_error("CPU_ECT_DRV", $sformatf(
+              "Handshake ack timeout: loc=%s index=%0d timeout=%0d",
+              item.loc.name(), item.index, timeout))
+          end
+        end
+        @(posedge vif.clk);
       end
 
       default: begin

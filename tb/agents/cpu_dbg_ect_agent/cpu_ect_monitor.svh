@@ -26,18 +26,21 @@ class cpu_ect_monitor extends uvm_monitor;
   endfunction
 
   virtual task run_phase(uvm_phase phase);
-    cpu_ect_loc_e monitored_locs[11] = '{
+    cpu_ect_loc_e monitored_locs[14] = '{
       CPU_ECT_CTI_EVT_IN,
+      CPU_ECT_CTI_EVT_IN_ACK,
       CPU_ECT_CTI_EVT_OUT,
+      CPU_ECT_CTI_EVT_OUT_ACK,
       CPU_ECT_CTI_CH_IN,
-      CPU_ECT_CTI_CH_OUT,
-      CPU_ECT_CLST_CH_IN,
-      CPU_ECT_CLST_CH_OUT,
-      CPU_ECT_ASYNC_CH_IN,
-      CPU_ECT_ASYNC_CH_OUT,
       CPU_ECT_CTI_CH_IN_DRV,
-      CPU_ECT_CLST_CH_IN_DRV,
-      CPU_ECT_ASYNC_CH_IN_DRV
+      CPU_ECT_CTI_CH_OUT,
+      CPU_ECT_CLST_CHOUT,
+      CPU_ECT_CLST_CHOUT_ACK,
+      CPU_ECT_CLST_CHINACK,
+      CPU_ECT_CLST_CHOUT_DRV,
+      CPU_ECT_ASYNC_CHOUT,
+      CPU_ECT_ASYNC_CHIN,
+      CPU_ECT_ASYNC_CHIN_DRV
     };
 
     forever begin

@@ -7,15 +7,16 @@ signal map in `ECT_Event_Mapping.xlsx`, sheet `sys_cpu`.
 
 - System-level `css600_cti_com`
   - CTI base: `0x4BF0_2000`
-  - input triggers 0..11
+  - input triggers 0..9
   - output triggers 0..18
 - System `css600_ctm_com`
   - channel 0..15
 - CPU-cluster CTI channel views (clusters 0..5, 4 bits each)
 - CPU CTM async bridge views
 
-The current `sys_cpu` mapping has no handshake event.  Input trigger 9 is the
-only level-type input.  All mapped output triggers are pulse type.
+Latest `sys_cpu` mapping has handshake at input trigger 0 and output
+triggers 0/1.  Input trigger 9 is level type.  The other mapped triggers are
+pulse type.
 
 ## Files
 
@@ -26,7 +27,7 @@ only level-type input.  All mapped output triggers are pulse type.
 | `tb/agents/cpu_dbg_ect_agent/cpu_ect_agent_pkg.sv` | UVM agent, monitor, driver, scoreboard |
 | `tb/sequences/cpu_ect_seq_pkg.sv` | pulse and level sequences |
 | `sv_test/ECT/cpu_ect_testlist.svh` | CPU ECT regression test list |
-| `sv_test/ECT/cpu_ect_eventin_test.sv` | input trigger 0..11 -> channel traversal |
+| `sv_test/ECT/cpu_ect_eventin_test.sv` | input trigger 0 handshake, 1..8 pulse, 9 level -> channel traversal |
 | `sv_test/ECT/cpu_ect_evtout0_15_test.sv` | channel -> output 0..15 traversal |
 | `sv_test/ECT/cpu_ect_evtout18_dbm_test.sv` | channel0 -> DBM output18 |
 
@@ -77,7 +78,7 @@ endpackage
 
 | test | route |
 | --- | --- |
-| `cpu_ect_eventin_test` | CTI input trigger 0..11 -> channel 0..11 |
+| `cpu_ect_eventin_test` | CTI input trigger 0..9 -> channel 0..9 |
 | `cpu_ect_evtout0_15_test` | channel 0..15 -> CTI output trigger 0..15 |
 | `cpu_ect_evtout18_dbm_test` | channel0 -> CTI output trigger18 / DBM |
 | `cpu_ect_clst0_chin_to_syscti_test` | cluster0 channel0..3 -> system CTI channel0..3 |

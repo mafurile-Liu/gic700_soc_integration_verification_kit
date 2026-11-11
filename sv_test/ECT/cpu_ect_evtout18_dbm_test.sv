@@ -2,7 +2,8 @@
 `define CPU_ECT_EVTOUT18_DBM_TEST_SV
 
 //----------------------------------------------------------------------
-// CPU CTI channel0 -> event_out18 / DBM route.
+// CPU CTI channel0 -> event_out18 route.  Latest mapping connects this to
+// u_pmu_m18.cti_trig_in[0].
 //----------------------------------------------------------------------
 class cpu_ect_evtout18_dbm_test extends cpu_ect_base_test;
     `uvm_component_utils(cpu_ect_evtout18_dbm_test)
@@ -46,7 +47,7 @@ class cpu_ect_evtout18_dbm_test extends cpu_ect_base_test;
             .expected_value(1'b1), .timeout_cycles(100));
         agent.scoreboard.expect_event(
             .loc(CPU_ECT_CTI_EVT_OUT), .index(18),
-            .expected_value(1'b0), .timeout_cycles(100));
+            .expected_value(1'b0), .timeout_cycles(200));
 
         for (int unsigned out_idx = 0; out_idx < 18; out_idx++) begin
             agent.scoreboard.expect_no_event(

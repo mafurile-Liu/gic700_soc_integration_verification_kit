@@ -2,10 +2,8 @@
 `define CPU_ECT_ASYNCBRIDGE_CHIN_TO_SYSCTI_TEST_SV
 
 //----------------------------------------------------------------------
-// Async-bridge CTM pulse -> CPU system CTM -> system CTI channel-in.
-//
-// Inject all 16 bridge channels and check one-to-one visibility at the
-// system CTI.  No CTI register programming is needed.
+// cp2cp async-bridge pulse-out -> CPU system CTM -> system CTI channel-in.
+// Inject all 16 bridge channels and check one-to-one visibility.
 //----------------------------------------------------------------------
 class cpu_ect_asyncbridge_chin_to_syscti_test extends cpu_ect_base_test;
     `uvm_component_utils(cpu_ect_asyncbridge_chin_to_syscti_test)
@@ -23,10 +21,10 @@ class cpu_ect_asyncbridge_chin_to_syscti_test extends cpu_ect_base_test;
 
         for (ch = 0; ch < 16; ch++) begin
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_ASYNC_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_ASYNC_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b0), .timeout_cycles(100));
 
             agent.scoreboard.expect_event(
@@ -39,7 +37,7 @@ class cpu_ect_asyncbridge_chin_to_syscti_test extends cpu_ect_base_test;
             for (int unsigned other = 0; other < 16; other++) begin
                 if (other != ch) begin
                     agent.scoreboard.expect_no_event(
-                        .loc(CPU_ECT_ASYNC_CH_IN_DRV), .index(other),
+                        .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(other),
                         .forbidden_value(1'b1), .timeout_cycles(200));
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_CH_IN), .index(other),
@@ -49,7 +47,7 @@ class cpu_ect_asyncbridge_chin_to_syscti_test extends cpu_ect_base_test;
 
             pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
             if (!pulse_seq.randomize() with {
-                    loc          == CPU_ECT_ASYNC_CH_IN_DRV;
+                    loc          == CPU_ECT_ASYNC_CHIN_DRV;
                     index        == ch;
                     value        == 1'b1;
                     pulse_cycles == 2;

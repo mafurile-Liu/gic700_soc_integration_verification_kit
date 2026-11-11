@@ -2,11 +2,8 @@
 `define CPU_ECT_CLST0_CHIN_TO_SYSCTI_TEST_SV
 
 //----------------------------------------------------------------------
-// Cluster0 CTI channel-out -> CPU system CTM -> system CTI channel-in.
-//
-// This case does not require CTI register programming.  It injects the
-// four cluster0 channels and checks that system CTI observes the lower
-// four CTM channels.
+// Cluster0 CTI handshake channel-out -> CPU system CTM -> system CTI
+// channel-in.  CTICHOUTACK is mandatory for each channel.
 //----------------------------------------------------------------------
 class cpu_ect_clst0_chin_to_syscti_test extends cpu_ect_base_test;
     `uvm_component_utils(cpu_ect_clst0_chin_to_syscti_test)
@@ -16,7 +13,7 @@ class cpu_ect_clst0_chin_to_syscti_test extends cpu_ect_base_test;
     endfunction
 
     virtual task test_body();
-        cpu_ect_pulse_sequence pulse_seq;
+        cpu_ect_handshake_sequence handshake_seq;
         int unsigned ch;
 
         aw_seen = 1;
@@ -24,23 +21,33 @@ class cpu_ect_clst0_chin_to_syscti_test extends cpu_ect_base_test;
 
         for (ch = 0; ch < 4; ch++) begin
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_CLST_CH_IN_DRV), .index(ch),
+                .loc(CPU_ECT_CLST_CHOUT_DRV), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
-                .loc(CPU_ECT_CLST_CH_IN_DRV), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(100));
+                .loc(CPU_ECT_CLST_CHOUT_DRV), .index(ch),
+                .expected_value(1'b0), .timeout_cycles(200));
+
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_CLST_CHOUT_ACK), .index(ch),
+                .expected_value(1'b1), .timeout_cycles(100));
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_CLST_CHOUT_ACK), .index(ch),
+                .expected_value(1'b0), .timeout_cycles(200));
 
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_IN), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_CH_IN), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(100));
+                .expected_value(1'b0), .timeout_cycles(200));
 
             for (int unsigned other = 0; other < 4; other++) begin
                 if (other != ch) begin
                     agent.scoreboard.expect_no_event(
-                        .loc(CPU_ECT_CLST_CH_IN_DRV), .index(other),
+                        .loc(CPU_ECT_CLST_CHOUT_DRV), .index(other),
+                        .forbidden_value(1'b1), .timeout_cycles(200));
+                    agent.scoreboard.expect_no_event(
+                        .loc(CPU_ECT_CLST_CHOUT_ACK), .index(other),
                         .forbidden_value(1'b1), .timeout_cycles(200));
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_CH_IN), .index(other),
@@ -48,19 +55,18 @@ class cpu_ect_clst0_chin_to_syscti_test extends cpu_ect_base_test;
                 end
             end
 
-            pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
-            if (!pulse_seq.randomize() with {
-                    loc          == CPU_ECT_CLST_CH_IN_DRV;
-                    index        == ch;
-                    value        == 1'b1;
-                    pulse_cycles == 2;
+            handshake_seq = cpu_ect_handshake_sequence::type_id::create("handshake_seq");
+            if (!handshake_seq.randomize() with {
+                    loc            == CPU_ECT_CLST_CHOUT_DRV;
+                    index          == ch;
+                    timeout_cycles == 100;
                 })
-                `uvm_error("cpu_ect_clst0_chin", "pulse randomize failed")
-            pulse_seq.start(agent.sequencer);
+                `uvm_error("cpu_ect_clst0_chin", "handshake randomize failed")
+            handshake_seq.start(agent.sequencer);
 
             repeat (220) @(posedge agent.cfg.vif.clk);
             `uvm_info("cpu_ect_clst0_chin",
-                      $sformatf("cluster0 channel%0d -> system CTI completed", ch),
+                      $sformatf("cluster0 handshake channel%0d -> system CTI completed", ch),
                       UVM_MEDIUM)
         end
 

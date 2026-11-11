@@ -4,10 +4,12 @@
 //----------------------------------------------------------------------
 // CPU CTI event_in -> channel direct-map traversal.
 //
-// CTI base: dbg_address_mapping / cti_pmu 0x4BF0_2000.
-// The C/UVM debug path maps each input trigger to the same channel:
-//   event_in[0..11] -> channel[0..11]
-// event_in[9] is level type and is driven with a controlled level pair.
+// Latest mapping:
+//   event_in[0]    : handshake DBGWATCHTRIGREQ/ACK
+//   event_in[1..8] : pulse PMU triggers
+//   event_in[9]    : level GICD PMU event
+//
+// CTIINEN[i] maps event_in[i] -> channel[i].
 //----------------------------------------------------------------------
 class cpu_ect_eventin_test extends cpu_ect_base_test;
     `uvm_component_utils(cpu_ect_eventin_test)
@@ -15,7 +17,7 @@ class cpu_ect_eventin_test extends cpu_ect_base_test;
     localparam bit [31:0] CTI_BASE  = 32'h4BF0_2000;
     localparam bit [31:0] CTI_CONTROL = 32'h000;
     localparam bit [31:0] CTI_GATE    = 32'h140;
-    localparam int unsigned N_EVT_IN  = 12;
+    localparam int unsigned N_EVT_IN  = 10;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
@@ -24,28 +26,28 @@ class cpu_ect_eventin_test extends cpu_ect_base_test;
     virtual task test_body();
         cpu_ect_pulse_sequence pulse_seq;
         cpu_ect_level_sequence level_seq;
+        cpu_ect_handshake_sequence handshake_seq;
         int unsigned idx;
         int unsigned ch;
 
         aw_seen = 1;
         `uvm_info("cpu_ect_eventin", "begin", UVM_LOW)
 
-        // Enable only while the CTI is disabled.
         ect_write32(CTI_BASE + CTI_CONTROL, 32'h0);
         for (int unsigned i = 0; i < N_EVT_IN; i++) begin
             ect_write32(CTI_BASE + 32'h020 + (i * 4), (32'h1 << i));
         end
-        ect_write32(CTI_BASE + CTI_GATE, 32'h0000_0FFF);
+        ect_write32(CTI_BASE + CTI_GATE, 32'h0000_03FF);
         ect_write32(CTI_BASE + CTI_CONTROL, 32'h0000_0001);
 
         ect_expect32("CONTROL", CTI_BASE + CTI_CONTROL,
                      32'h0000_0001, 32'h0000_0001);
         ect_expect32("GATE", CTI_BASE + CTI_GATE,
-                     32'h0000_0FFF, 32'h0000_0FFF);
+                     32'h0000_03FF, 32'h0000_03FF);
         for (int unsigned i = 0; i < N_EVT_IN; i++) begin
             ect_expect32($sformatf("INEN%0d", i),
                          CTI_BASE + 32'h020 + (i * 4),
-                         32'h0000_0FFF, (32'h1 << i));
+                         32'h0000_03FF, (32'h1 << i));
         end
 
         for (idx = 0; idx < N_EVT_IN; idx++) begin
@@ -71,7 +73,24 @@ class cpu_ect_eventin_test extends cpu_ect_base_test;
                 end
             end
 
-            if (cpu_ect_evt_in_is_level(idx)) begin
+            if (cpu_ect_evt_in_is_handshake(idx)) begin
+                agent.scoreboard.expect_event(
+                    .loc(CPU_ECT_CTI_EVT_IN_ACK), .index(0),
+                    .expected_value(1'b1), .timeout_cycles(100));
+                agent.scoreboard.expect_event(
+                    .loc(CPU_ECT_CTI_EVT_IN_ACK), .index(0),
+                    .expected_value(1'b0), .timeout_cycles(200));
+
+                handshake_seq = cpu_ect_handshake_sequence::type_id::create("handshake_seq");
+                if (!handshake_seq.randomize() with {
+                        loc            == CPU_ECT_CTI_EVT_IN;
+                        index          == idx;
+                        timeout_cycles == 100;
+                    })
+                    `uvm_error("cpu_ect_eventin", "handshake randomize failed")
+                handshake_seq.start(agent.sequencer);
+            end
+            else if (cpu_ect_evt_in_is_level(idx)) begin
                 level_seq = cpu_ect_level_sequence::type_id::create("level_high");
                 if (!level_seq.randomize() with {
                         loc         == CPU_ECT_CTI_EVT_IN;

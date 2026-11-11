@@ -4,8 +4,8 @@
 //----------------------------------------------------------------------
 // CPU CTI channel_in -> event_out direct-map traversal, outputs 0..15.
 //
-// channel[i] -> event_out[i] is programmed with CTIOUTEN[i]=1<<i.
-// This is an output-only route case; no input mapping is enabled.
+// Outputs 0/1 are handshake.  Their acks are mandatory.  Outputs 2..15
+// are pulse outputs.
 //----------------------------------------------------------------------
 class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
     `uvm_component_utils(cpu_ect_evtout0_15_test)
@@ -52,7 +52,16 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_EVT_OUT), .index(ch),
-                .expected_value(1'b0), .timeout_cycles(100));
+                .expected_value(1'b0), .timeout_cycles(200));
+
+            if (cpu_ect_evt_out_is_handshake(ch)) begin
+                agent.scoreboard.expect_event(
+                    .loc(CPU_ECT_CTI_EVT_OUT_ACK), .index(ch),
+                    .expected_value(1'b1), .timeout_cycles(100));
+                agent.scoreboard.expect_event(
+                    .loc(CPU_ECT_CTI_EVT_OUT_ACK), .index(ch),
+                    .expected_value(1'b0), .timeout_cycles(200));
+            end
 
             for (out_idx = 0; out_idx < 19; out_idx++) begin
                 if (out_idx != ch) begin
