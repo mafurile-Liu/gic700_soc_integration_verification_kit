@@ -86,13 +86,18 @@ assign cpu_ect_if.cti_evt_out[17:14] =
 // Mapping records output18 with cti_trig_in[3:0]; this agent uses bit0.
 assign cpu_ect_if.cti_evt_out[18] =
   `CPU_ECT_DUT_HIER.u_pmu_m18.cti_trig_in[0];
+assign cpu_ect_if.cti_evt_out[19] =
+  `CPU_ECT_DUT_HIER.u_ep2e_soc_tcu_pmusnapshot.pulse_in[0];
+
+assign cpu_ect_if.cti_evt_out[20] =
+  `CPU_ECT_DUT_HIER.u_ep2e_npu_tcu_pmusnapshot.pulse_in[0];
 
 // ---------------- CTI channel views ----------------
 assign cpu_ect_if.cti_channel_out =
-  `CPU_ECT_DUT_HIER.u_css600_cti_com.event_out[15:0];
+  `CPU_ECT_DUT_HIER.u_css600_ctm_com.channel_out[111:96];
 
 assign cpu_ect_if.cti_channel_in =
-  `CPU_ECT_DUT_HIER.u_css600_cti_com.event_in[15:0];
+  `CPU_ECT_DUT_HIER.u_css600_ctm_com.channel_in[111:96];
 
 // ---------------- Cluster handshake channel views ----------------
 assign cpu_ect_if.clst_ctichout[0] =

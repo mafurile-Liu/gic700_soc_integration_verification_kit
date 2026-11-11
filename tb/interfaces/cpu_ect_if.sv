@@ -14,7 +14,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
 
   // CTI output triggers.  Index matches sys_cpu.
   // Index0/1 are handshake; other mapped outputs are pulse.
-  logic [18:0] cti_evt_out;
+  logic [20:0] cti_evt_out;
   logic        cti_evt_out0_ack;
   logic        cti_evt_out1_ack;
 

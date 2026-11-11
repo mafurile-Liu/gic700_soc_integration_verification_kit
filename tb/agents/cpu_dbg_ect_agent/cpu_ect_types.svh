@@ -19,7 +19,7 @@ function automatic int unsigned cpu_ect_loc_width(cpu_ect_loc_e loc);
   case (loc)
     CPU_ECT_CTI_EVT_IN      : return 10;
     CPU_ECT_CTI_EVT_IN_ACK  : return 1;
-    CPU_ECT_CTI_EVT_OUT     : return 19;
+    CPU_ECT_CTI_EVT_OUT     : return 21;
     CPU_ECT_CTI_EVT_OUT_ACK : return 2;
     CPU_ECT_CTI_CH_IN       : return 16;
     CPU_ECT_CTI_CH_IN_DRV   : return 16;

@@ -63,7 +63,7 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
                     .expected_value(1'b0), .timeout_cycles(200));
             end
 
-            for (out_idx = 0; out_idx < 19; out_idx++) begin
+            for (out_idx = 0; out_idx < 21; out_idx++) begin
                 if (out_idx != ch) begin
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_EVT_OUT), .index(out_idx),

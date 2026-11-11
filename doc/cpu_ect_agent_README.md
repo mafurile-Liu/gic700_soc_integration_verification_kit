@@ -8,7 +8,7 @@ signal map in `ECT_Event_Mapping.xlsx`, sheet `sys_cpu`.
 - System-level `css600_cti_com`
   - CTI base: `0x4BF0_2000`
   - input triggers 0..9
-  - output triggers 0..18
+  - output triggers 0..20
 - System `css600_ctm_com`
   - channel 0..15
 - CPU-cluster CTI channel views (clusters 0..5, 4 bits each)
@@ -29,7 +29,7 @@ pulse type.
 | `sv_test/ECT/cpu_ect_testlist.svh` | CPU ECT regression test list |
 | `sv_test/ECT/cpu_ect_eventin_test.sv` | input trigger 0 handshake, 1..8 pulse, 9 level -> channel traversal |
 | `sv_test/ECT/cpu_ect_evtout0_15_test.sv` | channel -> output 0..15 traversal |
-| `sv_test/ECT/cpu_ect_evtout18_dbm_test.sv` | channel0 -> DBM output18 |
+| `sv_test/ECT/cpu_ect_evtout16_20_test.sv` | channel0..4 -> CTI output16..20 |
 
 ## TB integration
 
@@ -80,7 +80,7 @@ endpackage
 | --- | --- |
 | `cpu_ect_eventin_test` | CTI input trigger 0..9 -> channel 0..9 |
 | `cpu_ect_evtout0_15_test` | channel 0..15 -> CTI output trigger 0..15 |
-| `cpu_ect_evtout18_dbm_test` | channel0 -> CTI output trigger18 / DBM |
+| `cpu_ect_evtout16_20_test` | channel0..4 -> CTI output trigger16..20 |
 | `cpu_ect_clst0_chin_to_syscti_test` | cluster0 channel0..3 -> system CTI channel0..3 |
 | `cpu_ect_asyncbridge_chin_to_syscti_test` | async bridge channel0..15 -> system CTI channel0..15 |
 
@@ -90,6 +90,8 @@ update that test to the actual mapping.
 
 ## Mapping notes
 
-`sys_cpu` rows 42/43 currently repeat the GPU hierarchy names.  They are not
-used by this CPU ECT agent.  The authoritative system CTI channel paths are
-rows 12 and 20.
+Latest system CTI channel paths are
+`u_css600_ctm_com.channel_out[111:96]` (CTI -> CTM) and
+`u_css600_ctm_com.channel_in[111:96]` (CTM -> CTI).  The async transmitter
+and receiver paths use `u_cp2cp_async_trans.pulse_out[15:0]` and
+`u_cp2cp_async_rec.pulse_in[15:0]`.
