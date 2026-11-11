@@ -31,7 +31,7 @@ assign cpu_cp2cp_async_pulse_out_force = cpu_ect_if.cp2cp_async_pulse_out_drv;
 // ---------------- CTI event_in: agent injection ----------------
 initial begin
   if ($test$plusargs("CPU_ECT_ENABLE_SOURCE_FORCE")) begin
-    force `CPU_ECT_DUT_HIER.DBGWATCHTRIGREQ_NID68 =
+    force `CPU_ECT_DUT_HIER.u_cmns3_wrapper.u_cmns3_12_1.DBGWATCHTRIGREQ_NID68 =
       cpu_cti_evt_in_force[0];
 
     force `CPU_ECT_DUT_HIER.u_pmu_m14.cti_trig_out[1:0] =
