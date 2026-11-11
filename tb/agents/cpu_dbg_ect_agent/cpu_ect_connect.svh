@@ -49,7 +49,7 @@ initial begin
     force `CPU_ECT_DUT_HIER.u_gic700_gicd_wrap_zj100.pmu_int =
       cpu_cti_evt_in_force[9];
 
-    force `CPU_ECT_DUT_HIER.cti_channel_in[15:0] =
+    force `CPU_ECT_DUT_HIER.u_css600_cti_com.event_in[15:0] =
       cpu_cti_channel_in_force;
   end
 end
@@ -94,10 +94,10 @@ assign cpu_ect_if.cti_evt_out[20] =
 
 // ---------------- CTI channel views ----------------
 assign cpu_ect_if.cti_channel_out =
-  `CPU_ECT_DUT_HIER.u_css600_ctm_com.channel_out[111:96];
+  `CPU_ECT_DUT_HIER.u_css600_cti_com.event_out[15:0];
 
 assign cpu_ect_if.cti_channel_in =
-  `CPU_ECT_DUT_HIER.u_css600_ctm_com.channel_in[111:96];
+  `CPU_ECT_DUT_HIER.u_css600_cti_com.event_in[15:0];
 
 // ---------------- Cluster handshake channel views ----------------
 assign cpu_ect_if.clst_ctichout[0] =
