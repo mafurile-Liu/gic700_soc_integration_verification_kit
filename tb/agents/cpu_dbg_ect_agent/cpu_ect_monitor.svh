@@ -37,6 +37,7 @@ class cpu_ect_monitor extends uvm_monitor;
       CPU_ECT_CLST_CHOUT,
       CPU_ECT_CLST_CHOUT_ACK,
       CPU_ECT_CLST_CHINACK,
+      CPU_ECT_CLST_CHIN,
       CPU_ECT_CLST_CHOUT_DRV,
       CPU_ECT_ASYNC_CHOUT,
       CPU_ECT_ASYNC_CHIN,
