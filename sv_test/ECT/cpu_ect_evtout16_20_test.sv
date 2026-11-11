@@ -73,6 +73,13 @@ class cpu_ect_evtout16_20_test extends cpu_ect_base_test;
                         .forbidden_value(1'b1), .timeout_cycles(200));
                 end
             end
+            for (int unsigned other = 0; other < 16; other++) begin
+                if (other != ch) begin
+                    agent.scoreboard.expect_no_event(
+                        .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(other),
+                        .forbidden_value(1'b1), .timeout_cycles(200));
+                end
+            end
 
             pulse_seq = cpu_ect_pulse_sequence::type_id::create("pulse_seq");
             if (!pulse_seq.randomize() with {
