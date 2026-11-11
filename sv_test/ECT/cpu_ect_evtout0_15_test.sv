@@ -48,6 +48,13 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
                 .expected_value(1'b0), .timeout_cycles(100));
 
             agent.scoreboard.expect_event(
+                .loc(CPU_ECT_CTI_CH_IN), .index(ch),
+                .expected_value(1'b1), .timeout_cycles(100));
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_CTI_CH_IN), .index(ch),
+                .expected_value(1'b0), .timeout_cycles(200));
+
+            agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CTI_EVT_OUT), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
             agent.scoreboard.expect_event(
@@ -74,6 +81,9 @@ class cpu_ect_evtout0_15_test extends cpu_ect_base_test;
                 if (other != ch) begin
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(other),
+                        .forbidden_value(1'b1), .timeout_cycles(200));
+                    agent.scoreboard.expect_no_event(
+                        .loc(CPU_ECT_CTI_CH_IN), .index(other),
                         .forbidden_value(1'b1), .timeout_cycles(200));
                 end
             end

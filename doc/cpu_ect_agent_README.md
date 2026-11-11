@@ -79,11 +79,9 @@ endpackage
 | test | route |
 | --- | --- |
 | `cpu_ect_eventin_test` | CTI input trigger 0..9 -> channel 0..9 |
-| `cpu_ect_evtout0_15_test` | channel 0..15 -> CTI output trigger 0..15 |
-| `cpu_ect_evtout16_20_test` | channel0..4 -> CTI output trigger16..20 |
+| `cpu_ect_evtout0_15_test` | cp2cp 0..15 -> system CTI channel 0..15 -> CTI output trigger 0..15 |
+| `cpu_ect_evtout16_20_test` | cp2cp 0..4 -> system CTI channel 0..4 -> CTI output trigger 16..20 |
 | `cpu_ect_clst0_chin_to_syscti_test` | cluster0 channel0..3 -> system CTI channel0..3 |
-| `cpu_ect_asyncbridge_chin_to_syscti_test` | async bridge channel0..15 -> system CTI channel0..15 |
-
 The cluster case assumes the 4-bit cluster CTM port maps to system CTI
 channels 0..3.  If the SoC integration uses a different channel translation,
 update that test to the actual mapping.
