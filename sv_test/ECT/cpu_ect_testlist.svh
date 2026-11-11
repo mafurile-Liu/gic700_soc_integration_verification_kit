@@ -11,5 +11,5 @@ import cpu_ect_seq_pkg::*;
 `include "cpu_ect_eventin_test.sv"
 `include "cpu_ect_evtout0_15_test.sv"
 `include "cpu_ect_evtout16_20_test.sv"
-`include "cpu_ect_clst0_chin_to_syscti_test.sv"
+`include "cpu_ect_clusters_chin_test.sv"
 `endif
