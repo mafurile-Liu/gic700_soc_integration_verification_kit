@@ -49,8 +49,7 @@ initial begin
     force `CPU_ECT_DUT_HIER.u_gic700_gicd_wrap_zj100.pmu_int =
       cpu_cti_evt_in_force[9];
 
-    force `CPU_ECT_DUT_HIER.u_css600_ctm_com.channel_out[111:96] =
-      cpu_cti_channel_in_force;
+
   end
 end
 
