@@ -65,10 +65,20 @@ class cpu_ect_eventin_test extends cpu_ect_base_test;
                 .loc(CPU_ECT_CTI_CH_OUT), .index(idx),
                 .expected_value(1'b0), .timeout_cycles(200));
 
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_ASYNC_CHIN), .index(idx),
+                .expected_value(1'b1), .timeout_cycles(200));
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_ASYNC_CHIN), .index(idx),
+                .expected_value(1'b0), .timeout_cycles(200));
+
             for (ch = 0; ch < 16; ch++) begin
                 if (ch != idx) begin
                     agent.scoreboard.expect_no_event(
                         .loc(CPU_ECT_CTI_CH_OUT), .index(ch),
+                        .forbidden_value(1'b1), .timeout_cycles(200));
+                    agent.scoreboard.expect_no_event(
+                        .loc(CPU_ECT_ASYNC_CHIN), .index(ch),
                         .forbidden_value(1'b1), .timeout_cycles(200));
                 end
             end
