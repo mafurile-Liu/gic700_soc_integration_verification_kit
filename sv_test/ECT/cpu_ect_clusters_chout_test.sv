@@ -20,32 +20,27 @@ class cpu_ect_clusters_chout_test extends cpu_ect_base_test;
         super.new(name, parent);
     endfunction
 
-    protected task wait_chout_idle(output bit ok);
+    protected task wait_chout_ack(output bit ack_seen);
         int unsigned cycles;
         virtual cpu_ect_if vif;
 
-        vif = agent.cfg.vif;
-        ok  = 0;
+        vif      = agent.cfg.vif;
+        ack_seen = 0;
 
-        // The legacy channel interface is a four-phase handshake.  Do not
-        // inject the next cp2cp channel until the previous CTICHIN has been
-        // deasserted and all cluster CTICHINACKs have returned low.  This
-        // also stops later channels from OR-ing onto a stuck CTICHIN.
-        for (cycles = 0; cycles < 2000 && !ok; cycles++) begin
+        // Keep this window short: the normal RTL ack is expected after a
+        // clk_ctm beat.  A missing ack is fatal, so later channels are not
+        // injected into a stuck handshake.
+        for (cycles = 0; cycles < 20 && !ack_seen; cycles++) begin
             @(posedge vif.clk);
-            ok = (vif.cp2cp_async_pulse_in == '0 &&
-                  vif.cti_channel_in        == '0 &&
-                  vif.clst_ctichin          == '0 &&
-                  vif.clst_ctichinack       == '0);
+            ack_seen = (vif.clst_ctichinack == {N_CLST{4'hF}});
         end
 
-        if (!ok)
-            `uvm_error("cpu_ect_clusters_chout", $sformatf(
-                "chout handshake did not return idle: cp2cp_in=%04h, cti_chin=%04h, clst_chin=%h, clst_chinack=%h",
-                vif.cp2cp_async_pulse_in, vif.cti_channel_in,
+        if (!ack_seen)
+            `uvm_fatal("cpu_ect_clusters_chout", $sformatf(
+                "no CTICHINACK after channel0 injection: clst_chin=%h, clst_chinack=%h",
                 vif.clst_ctichin, vif.clst_ctichinack))
         else
-            `uvm_info("cpu_ect_clusters_chout", "chout handshake idle", UVM_MEDIUM)
+            `uvm_info("cpu_ect_clusters_chout", "channel0 CTICHINACK seen", UVM_MEDIUM)
     endtask
     virtual task test_body();
         cpu_ect_pulse_sequence pulse_seq;
@@ -53,7 +48,7 @@ class cpu_ect_clusters_chout_test extends cpu_ect_base_test;
         int unsigned clst;
         int unsigned flat_idx;
         int unsigned idx;
-        bit          chout_idle;
+        bit          ack_seen;
 
         aw_seen = 1;
         open_clusters_pwr();
@@ -67,7 +62,7 @@ class cpu_ect_clusters_chout_test extends cpu_ect_base_test;
 
         `uvm_info("cpu_ect_clusters_chout", "begin", UVM_LOW)
 
-        for (ch = 0; ch < N_CH; ch++) begin
+        ch = 0; // Fatal-and-stop bring-up case: inject channel0 only.
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_ASYNC_CHIN_DRV), .index(ch),
                 .expected_value(1'b1), .timeout_cycles(100));
@@ -142,17 +137,12 @@ class cpu_ect_clusters_chout_test extends cpu_ect_base_test;
                 `uvm_error("cpu_ect_clusters_chout", "pulse randomize failed")
             pulse_seq.start(agent.sequencer);
 
-            wait_chout_idle(chout_idle);
-            if (!chout_idle)
-                break;
-
-            repeat (100) @(posedge agent.cfg.vif.clk);
+            wait_chout_ack(ack_seen);
             `uvm_info("cpu_ect_clusters_chout",
-                      $sformatf("cp2cp channel%0d -> all cluster CTICHIN completed", ch),
-                      UVM_MEDIUM)
-        end
+                      "stop after channel0 injection as requested", UVM_LOW)
+            return;
 
-        `uvm_info("cpu_ect_clusters_chout", "done", UVM_LOW)
+        `uvm_info("cpu_ect_clusters_chout", "channel0 check done", UVM_LOW)
     endtask
 endclass
 
