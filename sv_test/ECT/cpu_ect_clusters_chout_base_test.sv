@@ -8,7 +8,7 @@
 // assumed to drive channel n at the system CTI and channel n of all six
 // cluster CTICHIN ports.  The flattened cluster index is cluster*4+n.
 //----------------------------------------------------------------------
-class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
+virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
 
     localparam int unsigned N_CLST     = 6;
     localparam int unsigned N_CH       = 4;
