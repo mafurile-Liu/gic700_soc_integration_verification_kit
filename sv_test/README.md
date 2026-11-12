@@ -88,6 +88,8 @@ both PIDR and these architecture IDs.
 | cpu_debug_halt_resume_clst3_test.sv | halt and resume one A720 core in clst3 |
 | cpu_debug_halt_resume_clst4_test.sv | halt and resume one A720 core in clst4 |
 | cpu_debug_halt_resume_clst5_test.sv | halt and resume one A720 core in clst5 |
+| cpu_debug_core_reset_dbg_access_clst0_test.sv | access clst0 DebugBlock while its cores stay in reset |
+| cpu_debug_core_reset_dbg_access_scan_all_test.sv | access all DebugBlocks while cluster cores stay in reset |
 
 ## Usage
 
@@ -126,3 +128,10 @@ walk coverage.
 If the DBG address window in the testbench maps the cluster blocks at a
 different base than the external view above, only `CLST_BASE` (or
 `CPU_TREE_BASE`) needs changing; all offsets stay the same.
+
+The core-reset DebugBlock tests call `open_clusters_pwr()` and
+`cluster_crg_init()`, but intentionally omit `rvbar_init()` and
+`cluster_crg_rst_init()`.  Therefore the PE/core reset remains held.
+They then read the DebugBlock ROM table and core CTI identity, and
+read/write core CTI `CONTROL`, `OUTEN0`, and `GATE` to prove the
+DebugBlock register path remains functional while the core is reset.
