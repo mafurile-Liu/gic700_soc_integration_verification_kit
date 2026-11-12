@@ -17,6 +17,14 @@ class cpu_ect_base_test extends cpu_debug_base_test;
 
     virtual function void build_phase(uvm_phase phase);
         super.build_phase(phase);
+
+        // All CPU ECT tests use source injection.  Fail fast if the TB
+        // plusarg is omitted; otherwise the connect file silently leaves
+        // every injection path unforced.
+        if (!$test$plusargs("CPU_ECT_ENABLE_SOURCE_FORCE"))
+            `uvm_fatal("cpu_ect_base",
+                       "missing +CPU_ECT_ENABLE_SOURCE_FORCE")
+
         agent = cpu_ect_agent::type_id::create("agent", this);
     endfunction
 
