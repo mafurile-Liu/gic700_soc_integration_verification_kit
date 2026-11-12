@@ -12,5 +12,9 @@ import cpu_ect_seq_pkg::*;
 `include "cpu_ect_evtout0_15_test.sv"
 `include "cpu_ect_evtout16_20_test.sv"
 `include "cpu_ect_clusters_chin_test.sv"
-`include "cpu_ect_clusters_chout_test.sv"
+`include "cpu_ect_clusters_chout_base_test.sv"
+`include "cpu_ect_clusters_chout_ch0_test.sv"
+`include "cpu_ect_clusters_chout_ch1_test.sv"
+`include "cpu_ect_clusters_chout_ch2_test.sv"
+`include "cpu_ect_clusters_chout_ch3_test.sv"
 `endif

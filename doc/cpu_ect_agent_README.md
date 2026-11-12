@@ -82,7 +82,7 @@ endpackage
 | `cpu_ect_evtout0_15_test` | cp2cp 0..15 -> system CTI channel 0..15 -> CTI output trigger 0..15 |
 | `cpu_ect_evtout16_20_test` | cp2cp 0..4 -> system CTI channel 0..4 -> CTI output trigger 16..20 |
 | `cpu_ect_clusters_chin_test` | all 6 clusters CTICHOUT channel0..3 -> system CTI channel-in and cp2cp pulse-in |
-| `cpu_ect_clusters_chout_test` | cp2cp channel0..3 -> all 6 clusters CTICHIN/CTICHINACK and system CTI channel-in |
+| `cpu_ect_clusters_chout_ch0_test` to `cpu_ect_clusters_chout_ch3_test` | one case per cp2cp channel 0..3 -> all 6 clusters CTICHIN/CTICHINACK and system CTI channel-in |
 The clusters case assumes a cluster channel n is visible as system-CTI channel n and cp2cp channel n.  If the SoC integration uses a different channel translation, update that test to the actual mapping.
 
 ## Mapping notes
