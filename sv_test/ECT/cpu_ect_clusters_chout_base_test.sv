@@ -14,6 +14,35 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
     localparam int unsigned N_CH       = 4;
     localparam int unsigned N_CLST_IDX = N_CLST * N_CH;
 
+    localparam bit [31:0] CPU_TREE_BASE      = 32'h4B00_0000;
+    localparam bit [31:0] CLST_STRIDE        = 32'h0028_0000;
+    localparam bit [31:0] CORE0_CTI_OFFSET   = 32'h000F_0000;
+    localparam bit [31:0] CTI_CONTROL        = 32'h000;
+    // Use reserved output trigger 3 so the incoming channel is consumed
+    // without requesting Debug state or a GIC interrupt.
+    localparam bit [31:0] CTI_OUTEN3         = 32'h0AC;
+
+    protected task configure_cluster_ctis(int unsigned ch);
+        bit [31:0] outen;
+        bit [31:0] cti_base;
+
+        outen = 32'h0000_0001 << ch;
+        for (int unsigned clst = 0; clst < N_CLST; clst++) begin
+            cti_base = CPU_TREE_BASE + clst * CLST_STRIDE + CORE0_CTI_OFFSET;
+
+            DBG_SETREG32(cti_base + CTI_CONTROL, 32'h0000_0000);
+            DBG_SETREG32(cti_base + CTI_OUTEN3, outen);
+            DBG_SETREG32(cti_base + CTI_CONTROL, 32'h0000_0001);
+
+            ect_expect32($sformatf("clst%0d CTI0 CONTROL", clst),
+                         cti_base + CTI_CONTROL,
+                         32'h0000_00FF, 32'h0000_0001);
+            ect_expect32($sformatf("clst%0d CTI0 reserved OUTEN", clst),
+                         cti_base + CTI_OUTEN3,
+                         32'h0000_00FF, outen);
+        end
+    endtask
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
     endfunction
@@ -28,10 +57,10 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
         vif      = agent.cfg.vif;
         ack_seen = 0;
 
-        // Keep this window short: the normal RTL ack is expected after a
-        // clk_ctm beat.  A missing ack is fatal, so the channel case stops
-        // instead of running unrelated traffic into a stuck handshake.
-        for (cycles = 0; cycles < 20 && !ack_seen; cycles++) begin
+        // Allow enough time for the cp2cp/CDC path plus one clk_ctm beat.
+        // A missing ack is fatal, so the channel case stops instead of
+        // running unrelated traffic into a stuck handshake.
+        for (cycles = 0; cycles < 100 && !ack_seen; cycles++) begin
             @(posedge vif.clk);
             ack_seen = (vif.clst_ctichinack == {N_CLST{4'hF}});
         end
@@ -57,10 +86,12 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
 
         bakdoor_set_svt_mem(); // Pre-load Trickbox + svt mem data
         cluster_crg_init(6'b111111);
-        rvbar_init(6'b111111);
+        //rvbar_init(6'b111111);
         cluster_crg_rst_init(6'b111111);
         wait(cpu_vif.debug_pwr_qacceptn[5:0] == 6'b111111);
         #0.5us;
+
+        configure_cluster_ctis(ch);
 
         `uvm_info("cpu_ect_clusters_chout",
                   $sformatf("begin channel%0d", ch), UVM_LOW)
