@@ -49,47 +49,74 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
 
     pure virtual function int unsigned channel_id();
 
-    protected task wait_chout_ack(int unsigned ch,
-                                  output bit ack_seen);
+    protected task wait_chout_handshake(int unsigned ch,
+                                        output bit handshake_seen);
         int unsigned cycles;
         int unsigned clst;
         int unsigned flat_idx;
 
-        // Check that every cluster has observed an ACK=1 pulse.  This is a
-        // deliberately non-strict check: it does not require the full
-        // four-phase return-to-zero sequence.
-        ack_seen = 0;
-        for (cycles = 0; cycles < 100 && !ack_seen; cycles++) begin
+        // Check high and low transitions for both cluster-side CTICHIN and
+        // CTICHINACK.  Use observed transition counts so short pulses are
+        // not missed after the injection sequence returns.
+        handshake_seen = 0;
+        for (cycles = 0; cycles < 100 && !handshake_seen; cycles++) begin
             @(posedge agent.cfg.vif.clk);
-            ack_seen = 1;
+            handshake_seen = 1;
             for (clst = 0; clst < N_CLST; clst++) begin
                 flat_idx = clst * N_CH + ch;
                 if (agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHIN), .index(flat_idx),
+                        .value(1'b1)) == 0 ||
+                    agent.scoreboard.get_observed_value_count(
                         .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
-                        .value(1'b1)) == 0) begin
-                    ack_seen = 0;
+                        .value(1'b1)) == 0 ||
+                    agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHIN), .index(flat_idx),
+                        .value(1'b0)) == 0 ||
+                    agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
+                        .value(1'b0)) == 0) begin
+                    handshake_seen = 0;
                     break;
                 end
             end
         end
 
-        if (!ack_seen) begin
+        if (!handshake_seen) begin
             for (clst = 0; clst < N_CLST; clst++) begin
                 flat_idx = clst * N_CH + ch;
+                if (agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHIN), .index(flat_idx),
+                        .value(1'b1)) == 0)
+                    `uvm_error("cpu_ect_clusters_chout", $sformatf(
+                        "missing CHIN=1: cluster=%0d channel=%0d",
+                        clst, ch))
                 if (agent.scoreboard.get_observed_value_count(
                         .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
                         .value(1'b1)) == 0)
                     `uvm_error("cpu_ect_clusters_chout", $sformatf(
                         "missing CHINACK=1: cluster=%0d channel=%0d",
                         clst, ch))
+                if (agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHIN), .index(flat_idx),
+                        .value(1'b0)) == 0)
+                    `uvm_error("cpu_ect_clusters_chout", $sformatf(
+                        "missing CHIN=0: cluster=%0d channel=%0d",
+                        clst, ch))
+                if (agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
+                        .value(1'b0)) == 0)
+                    `uvm_error("cpu_ect_clusters_chout", $sformatf(
+                        "missing CHINACK=0: cluster=%0d channel=%0d",
+                        clst, ch))
             end
             `uvm_fatal("cpu_ect_clusters_chout", $sformatf(
-                "not all CTICHINACK=1 pulses observed after channel%0d injection",
+                "not all cluster CTICHIN/CTICHINACK high-low handshakes observed after channel%0d injection",
                 ch))
         end
         else
             `uvm_info("cpu_ect_clusters_chout",
-                      $sformatf("all cluster CTICHINACK=1 pulses seen for channel%0d", ch),
+                      $sformatf("all cluster CTICHIN/CTICHINACK high-low handshakes seen for channel%0d", ch),
                       UVM_MEDIUM)
     endtask
 
@@ -98,7 +125,7 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
         int unsigned clst;
         int unsigned flat_idx;
         int unsigned idx;
-        bit          ack_seen;
+        bit          handshake_seen;
 
         aw_seen = 1;
         open_clusters_pwr();
@@ -142,10 +169,16 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CLST_CHIN), .index(flat_idx),
                 .expected_value(1'b1), .timeout_cycles(200));
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_CLST_CHIN), .index(flat_idx),
+                .expected_value(1'b0), .timeout_cycles(200));
 
             agent.scoreboard.expect_event(
                 .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
                 .expected_value(1'b1), .timeout_cycles(200));
+            agent.scoreboard.expect_event(
+                .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
+                .expected_value(1'b0), .timeout_cycles(200));
         end
 
         for (idx = 0; idx < 16; idx++) begin
@@ -183,9 +216,9 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
             `uvm_error("cpu_ect_clusters_chout", "pulse randomize failed")
         pulse_seq.start(agent.sequencer);
 
-        wait_chout_ack(ch, ack_seen);
+        wait_chout_handshake(ch, handshake_seen);
         `uvm_info("cpu_ect_clusters_chout",
-                  $sformatf("channel%0d CTICHINACK pulse check complete", ch),
+                  $sformatf("channel%0d CTICHIN/CTICHINACK high-low check complete", ch),
                   UVM_LOW)
     endtask
 
