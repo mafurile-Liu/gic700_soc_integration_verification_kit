@@ -5,6 +5,22 @@ class cpu_ect_monitor extends uvm_monitor;
 
   local bit   m_valid[string];
   local logic m_value[string];
+  local cpu_ect_loc_e monitored_locs[14] = '{
+    CPU_ECT_CTI_EVT_IN,
+    CPU_ECT_CTI_EVT_IN_ACK,
+    CPU_ECT_CTI_EVT_OUT_ACK,
+    CPU_ECT_CTI_CH_IN,
+    CPU_ECT_CTI_CH_IN_DRV,
+    CPU_ECT_CTI_CH_OUT,
+    CPU_ECT_CLST_CHOUT,
+    CPU_ECT_CLST_CHOUT_ACK,
+    CPU_ECT_CLST_CHINACK,
+    CPU_ECT_CLST_CHIN,
+    CPU_ECT_CLST_CHOUT_DRV,
+    CPU_ECT_ASYNC_CHOUT,
+    CPU_ECT_ASYNC_CHIN,
+    CPU_ECT_ASYNC_CHIN_DRV
+  };
 
   `uvm_component_utils(cpu_ect_monitor)
 
@@ -26,23 +42,6 @@ class cpu_ect_monitor extends uvm_monitor;
   endfunction
 
   virtual task run_phase(uvm_phase phase);
-    cpu_ect_loc_e monitored_locs[14] = '{
-      CPU_ECT_CTI_EVT_IN,
-      CPU_ECT_CTI_EVT_IN_ACK,
-      CPU_ECT_CTI_EVT_OUT_ACK,
-      CPU_ECT_CTI_CH_IN,
-      CPU_ECT_CTI_CH_IN_DRV,
-      CPU_ECT_CTI_CH_OUT,
-      CPU_ECT_CLST_CHOUT,
-      CPU_ECT_CLST_CHOUT_ACK,
-      CPU_ECT_CLST_CHINACK,
-      CPU_ECT_CLST_CHIN,
-      CPU_ECT_CLST_CHOUT_DRV,
-      CPU_ECT_ASYNC_CHOUT,
-      CPU_ECT_ASYNC_CHIN,
-      CPU_ECT_ASYNC_CHIN_DRV
-    };
-
     fork
       monitor_base_domain();
       monitor_evt_out_base_domain();
