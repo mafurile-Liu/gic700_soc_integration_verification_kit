@@ -37,7 +37,7 @@ Instantiate the interface inside `tb_top` and set the virtual interface to the
 agent created by `cpu_ect_base_test`:
 
 ~~~systemverilog
-cpu_ect_if cpu_ect_if(.clk(cpu_clk), .rst_n(tb_rst_n));
+cpu_ect_if cpu_ect_if(.clk(cpu_clk), .clk_evt_axi(axi_mon_clk), .rst_n(tb_rst_n));
 
 initial begin
     uvm_config_db#(virtual cpu_ect_if)::set(

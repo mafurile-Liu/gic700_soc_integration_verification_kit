@@ -5,15 +5,16 @@
 // Vectors are flattened even when the RTL sources are packed fields.
 // Handshake req/ack are exposed separately.
 // ------------------------------------------------------------------
-interface cpu_ect_if(input logic clk, input logic rst_n);
+interface cpu_ect_if(input logic clk, input logic clk_evt_axi, input logic rst_n);
 
   // CTI input triggers.  Index matches sys_cpu.
   // Index0 is handshake.  Index9 is level.
   logic [9:0]  cti_evt_in     = '0;
   logic        cti_evt_in_ack;
 
-  // CTI output triggers.  Index matches sys_cpu.
-  // Index0/1 are handshake; other mapped outputs are pulse.
+  // CTI output triggers.  Index matches sys_cpu.  Event outputs 2..17 are
+  // sourced by fast axi-bus monitors; observe them in clk_evt_axi to avoid
+  // missing narrow pulses.
   logic [20:0] cti_evt_out;
   logic        cti_evt_out0_ack;
   logic        cti_evt_out1_ack;
@@ -37,6 +38,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
 
   modport drv_mp(
     input  clk,
+    input  clk_evt_axi,
     input  rst_n,
     output cti_evt_in,
     output cti_channel_in_drv,
@@ -58,6 +60,7 @@ interface cpu_ect_if(input logic clk, input logic rst_n);
 
   modport mon_mp(
     input clk,
+    input clk_evt_axi,
     input rst_n,
     input cti_evt_in,
     input cti_evt_in_ack,

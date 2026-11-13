@@ -26,10 +26,9 @@ class cpu_ect_monitor extends uvm_monitor;
   endfunction
 
   virtual task run_phase(uvm_phase phase);
-    cpu_ect_loc_e monitored_locs[15] = '{
+    cpu_ect_loc_e monitored_locs[14] = '{
       CPU_ECT_CTI_EVT_IN,
       CPU_ECT_CTI_EVT_IN_ACK,
-      CPU_ECT_CTI_EVT_OUT,
       CPU_ECT_CTI_EVT_OUT_ACK,
       CPU_ECT_CTI_CH_IN,
       CPU_ECT_CTI_CH_IN_DRV,
@@ -44,6 +43,15 @@ class cpu_ect_monitor extends uvm_monitor;
       CPU_ECT_ASYNC_CHIN_DRV
     };
 
+    fork
+      monitor_base_domain();
+      monitor_evt_out_base_domain();
+      monitor_evt_out_axi_domain();
+    join
+  endtask
+
+  // Source/driver/cluster handshake signals use the base CPU clock.
+  local task monitor_base_domain();
     forever begin
       @(posedge vif.clk);
       foreach (monitored_locs[i]) begin
@@ -52,8 +60,28 @@ class cpu_ect_monitor extends uvm_monitor;
     end
   endtask
 
-  local function void sample_loc(cpu_ect_loc_e loc);
-    for (int unsigned index = 0; index < cpu_ect_loc_width(loc); index++) begin
+  // Handshake and async-bridge event outputs are not in the fast AXI range.
+  local task monitor_evt_out_base_domain();
+    forever begin
+      @(posedge vif.clk);
+      sample_loc_range(CPU_ECT_CTI_EVT_OUT, 0, 1);
+      sample_loc_range(CPU_ECT_CTI_EVT_OUT, 18, 20);
+    end
+  endtask
+
+  // Event outputs 2..17 are driven by fast axi-bus monitor instances.
+  // Sampling them on the slower base clock can miss single-cycle pulses.
+  local task monitor_evt_out_axi_domain();
+    forever begin
+      @(posedge vif.clk_evt_axi);
+      sample_loc_range(CPU_ECT_CTI_EVT_OUT, 2, 17);
+    end
+  endtask
+
+  local function void sample_loc_range(cpu_ect_loc_e loc,
+                                       int unsigned first,
+                                       int unsigned last);
+    for (int unsigned index = first; index <= last; index++) begin
       string key;
       logic value;
       key = $sformatf("%s_%0d", loc.name(), index);
@@ -72,5 +100,9 @@ class cpu_ect_monitor extends uvm_monitor;
         m_value[key] = value;
       end
     end
+  endfunction
+
+  local function void sample_loc(cpu_ect_loc_e loc);
+    sample_loc_range(loc, 0, cpu_ect_loc_width(loc) - 1);
   endfunction
 endclass
