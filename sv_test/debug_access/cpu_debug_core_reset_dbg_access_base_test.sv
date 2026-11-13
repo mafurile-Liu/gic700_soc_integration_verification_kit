@@ -2,13 +2,13 @@
 `define CPU_DEBUG_CORE_RESET_DBG_ACCESS_BASE_TEST_SV
 
 //----------------------------------------------------------------------
-// DebugBlock access after a debug-generated core reset.
+// DebugBlock access while a debug-generated core reset is held.
 //
 // The normal CRG sequence powers up the cluster, programs RVBAR, and
 // releases core reset.  Then the DebugBlock GPR DBGRSTRR register
 // asserts cdbgrstreq to the reset controller.  After DBGRSTAR
-// acknowledges the request, the request is deasserted.  The DebugBlock
-// remains in the debug power domain and is accessed afterwards.
+// acknowledges the request, the request remains asserted so the core
+// stays in reset.  The DebugBlock is then accessed in this state.
 //----------------------------------------------------------------------
 
 class cpu_debug_core_reset_dbg_access_base_test extends cpu_debug_base_test;
@@ -59,7 +59,7 @@ class cpu_debug_core_reset_dbg_access_base_test extends cpu_debug_base_test;
         end
     endtask
 
-    protected virtual task request_core_reset_from_debug(output bit ok);
+    protected virtual task hold_core_reset_from_debug(output bit ok);
         bit reached;
 
         ok = 0;
@@ -87,19 +87,26 @@ class cpu_debug_core_reset_dbg_access_base_test extends cpu_debug_base_test;
             return;
         end
 
-        // Hold the requested reset briefly, then deassert cdbgrstreq.
+        // Keep DBGRSTRR.DBGRR asserted.  The external reset controller
+        // has acknowledged the request, so the core reset remains held
+        // while the caller accesses the DebugBlock.
         #0.5us;
-        DBG_SETREG32(cluster_base + DBROM_DBGRSTRR, 32'h0000_0000);
-        wait_gpr_bit("DBGRSTAR", cluster_base + DBROM_DBGRSTAR,
-                     0, 1'b0, reached);
-        if (!reached) begin
-            `uvm_error(tag, "debug reset acknowledge did not deassert")
-            return;
-        end
-
-        #0.5us;
-        `uvm_info(tag, "core reset requested and released through debug GPR", UVM_LOW)
+        `uvm_info(tag, "core reset requested and held through debug GPR", UVM_LOW)
         ok = 1;
+    endtask
+
+    protected task check_debug_reset_held(output bit held);
+        bit [31:0] strtrr;
+        bit [31:0] star;
+
+        DBG_GETREG32(cluster_base + DBROM_DBGRSTRR, strtrr);
+        DBG_GETREG32(cluster_base + DBROM_DBGRSTAR, star);
+        `uvm_info(tag,
+                  $sformatf("debug reset hold check: DBGRSTRR=%08h, DBGRSTAR=%08h",
+                            strtrr, star), UVM_LOW)
+        held = (strtrr[0] == 1'b1 && star[0] == 1'b1);
+        if (!held)
+            `uvm_error(tag, "debug core reset request is not held")
     endtask
 
     function new(string name, uvm_component parent);
@@ -179,18 +186,19 @@ class cpu_debug_core_reset_dbg_access_base_test extends cpu_debug_base_test;
 
         // Normal CRG power-up/reset-release sequence.
         cluster_crg_init(cluster_mask);
-        rvbar_init(cluster_mask);
+        //rvbar_init(cluster_mask);
         cluster_crg_rst_init(cluster_mask);
         wait(cpu_vif.debug_pwr_qacceptn[cluster_index] == 1'b1);
         #0.5us;
 
-        request_core_reset_from_debug(reset_ok);
+        hold_core_reset_from_debug(reset_ok);
         if (!reset_ok)
             return;
 
         check_debugblock(path_ok);
+        check_debug_reset_held(reset_ok);
         if (path_ok)
-            `uvm_info(tag, "DebugBlock access passed after debug-generated core reset", UVM_LOW)
+            `uvm_info(tag, "DebugBlock access passed with debug-generated core reset held", UVM_LOW)
     endtask
 
     virtual task test_body();

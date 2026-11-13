@@ -132,7 +132,7 @@ different base than the external view above, only `CLST_BASE` (or
 The core-reset DebugBlock tests use the normal CRG power-up/reset-release
 sequence first.  They then check GPR `PRIDR0.DBGRR`, assert
 `DBGRSTRR.DBGRR` to issue a debug reset request, and wait for
-`DBGRSTAR.DBGRA` acknowledgement.  After deasserting the request, they
-read the DebugBlock ROM table and core CTI identity, and read/write core
-CTI `GATE` to prove the DebugBlock register path remains functional
-after the debug-generated core reset.
+`DBGRSTAR.DBGRA` acknowledgement.  The request is intentionally left
+asserted so the core remains in reset.  In that state, they read the
+DebugBlock ROM table and core CTI identity, read/write core CTI `GATE`,
+and confirm `DBGRSTRR.DBGRR`/`DBGRSTAR.DBGRA` are still high.
