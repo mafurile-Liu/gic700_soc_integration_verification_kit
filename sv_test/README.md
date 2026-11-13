@@ -129,9 +129,10 @@ If the DBG address window in the testbench maps the cluster blocks at a
 different base than the external view above, only `CLST_BASE` (or
 `CPU_TREE_BASE`) needs changing; all offsets stay the same.
 
-The core-reset DebugBlock tests call `open_clusters_pwr()` and
-`cluster_crg_init()`, but intentionally omit `rvbar_init()` and
-`cluster_crg_rst_init()`.  Therefore the PE/core reset remains held.
-They then read the DebugBlock ROM table and core CTI identity, and
-read/write core CTI `CONTROL`, `OUTEN0`, and `GATE` to prove the
-DebugBlock register path remains functional while the core is reset.
+The core-reset DebugBlock tests use the normal CRG power-up/reset-release
+sequence first.  They then check GPR `PRIDR0.DBGRR`, assert
+`DBGRSTRR.DBGRR` to issue a debug reset request, and wait for
+`DBGRSTAR.DBGRA` acknowledgement.  After deasserting the request, they
+read the DebugBlock ROM table and core CTI identity, and read/write core
+CTI `GATE` to prove the DebugBlock register path remains functional
+after the debug-generated core reset.
