@@ -52,26 +52,46 @@ virtual class cpu_ect_clusters_chout_base_test extends cpu_ect_base_test;
     protected task wait_chout_ack(int unsigned ch,
                                   output bit ack_seen);
         int unsigned cycles;
-        virtual cpu_ect_if vif;
+        int unsigned clst;
+        int unsigned flat_idx;
 
-        vif      = agent.cfg.vif;
+        // CTICHINACK is a short pulse and may return before the pulse
+        // sequence returns.  Check the scoreboard's observed transition
+        // count instead of the current signal level, otherwise a completed
+        // ack can be missed and falsely reported as fatal.
         ack_seen = 0;
-
-        // Allow enough time for the cp2cp/CDC path plus one clk_ctm beat.
-        // A missing ack is fatal, so the channel case stops instead of
-        // running unrelated traffic into a stuck handshake.
         for (cycles = 0; cycles < 100 && !ack_seen; cycles++) begin
-            @(posedge vif.clk);
-            ack_seen = (vif.clst_ctichinack == {N_CLST{4'hF}});
+            @(posedge agent.cfg.vif.clk);
+            ack_seen = 1;
+            for (clst = 0; clst < N_CLST; clst++) begin
+                flat_idx = clst * N_CH + ch;
+                if (agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
+                        .value(1'b1)) == 0) begin
+                    ack_seen = 0;
+                    break;
+                end
+            end
         end
 
-        if (!ack_seen)
+        if (!ack_seen) begin
+            for (clst = 0; clst < N_CLST; clst++) begin
+                flat_idx = clst * N_CH + ch;
+                if (agent.scoreboard.get_observed_value_count(
+                        .loc(CPU_ECT_CLST_CHINACK), .index(flat_idx),
+                        .value(1'b1)) == 0)
+                    `uvm_error("cpu_ect_clusters_chout", $sformatf(
+                        "missing observed CTICHINACK: channel=%0d cluster=%0d flat_index=%0d",
+                        ch, clst, flat_idx))
+            end
             `uvm_fatal("cpu_ect_clusters_chout", $sformatf(
-                "no CTICHINACK after channel%0d injection: clst_chin=%h, clst_chinack=%h",
-                ch, vif.clst_ctichin, vif.clst_ctichinack))
+                "not all CTICHINACKs observed after channel%0d injection",
+                ch))
+        end
         else
             `uvm_info("cpu_ect_clusters_chout",
-                      $sformatf("channel%0d CTICHINACK seen", ch), UVM_MEDIUM)
+                      $sformatf("all cluster CTICHINACKs seen for channel%0d", ch),
+                      UVM_MEDIUM)
     endtask
 
     protected virtual task run_channel(int unsigned ch);

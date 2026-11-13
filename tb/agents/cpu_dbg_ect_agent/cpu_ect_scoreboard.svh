@@ -5,6 +5,7 @@ class cpu_ect_scoreboard extends uvm_scoreboard;
 
   local cpu_ect_expectation expectations[$];
   local int unsigned observed_count[string];
+  local int unsigned observed_value_count[string];
   local logic observed_value[string];
   local bit observed_valid[string];
 
@@ -77,6 +78,7 @@ class cpu_ect_scoreboard extends uvm_scoreboard;
   local function void process_event(cpu_ect_item item);
     string key = item_key(item);
     observed_count[key]++;
+    observed_value_count[$sformatf("%s_%b", key, item.value)]++;
     observed_value[key] = item.value;
     observed_valid[key] = 1'b1;
 
@@ -133,5 +135,13 @@ class cpu_ect_scoreboard extends uvm_scoreboard;
                                            int unsigned index);
     string key = $sformatf("%s_%0d", loc.name(), index);
     return observed_count.exists(key) ? observed_count[key] : 0;
+  endfunction
+
+  function int unsigned get_observed_value_count(cpu_ect_loc_e loc,
+                                                 int unsigned index,
+                                                 logic value);
+    string key = $sformatf("%s_%0d_%b", loc.name(), index, value);
+    return observed_value_count.exists(key) ?
+           observed_value_count[key] : 0;
   endfunction
 endclass
