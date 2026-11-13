@@ -38,7 +38,6 @@ interface cpu_ect_if(input logic clk, input logic clk_evt_axi, input logic rst_n
 
   modport drv_mp(
     input  clk,
-    input  clk_evt_axi,
     input  rst_n,
     output cti_evt_in,
     output cti_channel_in_drv,
