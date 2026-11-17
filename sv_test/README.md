@@ -100,8 +100,9 @@ both PIDR and these architecture IDs.
 ## Usage
 
 Copy the files next to `cpu_debug_base_test.sv` in the cpu tests
-directory. To compile all tests at once, include the testlist from the
-cpu test package (after the base tests):
+directory. Compile `filelist/cpu_debug.f` before the CPU test package so
+the designer offset macros are visible. To compile all tests at once,
+include the testlist from the cpu test package (after the base tests):
 
 ```systemverilog
 package cpu_test_pkg;

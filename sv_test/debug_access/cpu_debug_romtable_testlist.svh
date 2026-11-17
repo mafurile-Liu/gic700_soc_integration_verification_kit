@@ -25,8 +25,6 @@
 `ifndef CPU_DEBUG_ROMTABLE_TESTLIST_SVH
 `define CPU_DEBUG_ROMTABLE_TESTLIST_SVH
 
-`include "apb_block_offset_macros.svh"
-
 `include "cpu_debug_romtable_clst0_test.sv"
 `include "cpu_debug_romtable_clst1_test.sv"
 `include "cpu_debug_romtable_clst2_test.sv"
