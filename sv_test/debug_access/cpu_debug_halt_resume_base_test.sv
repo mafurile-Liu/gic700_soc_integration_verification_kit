@@ -45,11 +45,11 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
     localparam bit [31:0] CTI_GATE        = 32'h140;
 
     // A720 external debug registers and fields.
-    localparam bit [31:0] EDDEVARCH       = 32'hFBC;
-    localparam bit [31:0] EDDEVTYPE       = 32'hFCC;
-    localparam bit [31:0] EDSCR           = 32'h088;
-    localparam bit [31:0] EDPRCR          = 32'h310;
-    localparam bit [31:0] EDPRSR          = 32'h314;
+    localparam bit [31:0] EDDEVARCH       = `APB_DEBUG_BLOCK_EDDEVARCH_OFFSET;
+    localparam bit [31:0] EDDEVTYPE       = `APB_DEBUG_BLOCK_EDDEVTYPE_OFFSET;
+    localparam bit [31:0] EDSCR           = `APB_DEBUG_BLOCK_EDSCR_OFFSET;
+    localparam bit [31:0] EDPRCR          = `APB_DEBUG_BLOCK_EDPRCR_OFFSET;
+    localparam bit [31:0] EDPRSR          = `APB_DEBUG_BLOCK_EDPRSR_OFFSET;
     localparam bit [31:0] DEBUG_DEVTYPE   = 32'h0000_0015;
     localparam bit [31:0] DEBUG_DEVARCH   = 32'h4770_9A15;
     localparam bit [31:0] CTI_DEVTYPE     = 32'h0000_0014;
@@ -139,14 +139,14 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
         // Confirm the direct addresses before programming run-control.
         // A720 debug and CTI share Peripheral ID 0x04200BBD81, so use
         // DEVTYPE/DEVARCH to distinguish the two components.
-        DBG_GETREG32(dbg_base + 32'hFE0, temp_data);
+        DBG_GETREG32(dbg_base + `APB_ROM_TABLE_BLOCK_PIDR0_OFFSET, temp_data);
         `uvm_info(tag, $sformatf("debug @ %08h PIDR0 = %h", dbg_base, temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'h81) begin
             `uvm_error(tag, $sformatf("debug PIDR0 = %h, expected x81", temp_data))
             path_ok = 0;
         end
 
-        DBG_GETREG32(dbg_base + 32'hFE4, temp_data);
+        DBG_GETREG32(dbg_base + `APB_ROM_TABLE_BLOCK_PIDR1_OFFSET, temp_data);
         `uvm_info(tag, $sformatf("debug @ %08h PIDR1 = %h", dbg_base, temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'hBD) begin
             `uvm_error(tag, $sformatf("debug PIDR1 = %h, expected xBD", temp_data))
@@ -169,28 +169,28 @@ class cpu_debug_halt_resume_base_test extends cpu_debug_base_test;
             path_ok = 0;
         end
 
-        DBG_GETREG32(cti_base + 32'hFE0, temp_data);
+        DBG_GETREG32(cti_base + `APB_ROM_TABLE_BLOCK_PIDR0_OFFSET, temp_data);
         `uvm_info(tag, $sformatf("CTI @ %08h PIDR0 = %h", cti_base, temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'h81) begin
             `uvm_error(tag, $sformatf("CTI PIDR0 = %h, expected x81", temp_data))
             path_ok = 0;
         end
 
-        DBG_GETREG32(cti_base + 32'hFE4, temp_data);
+        DBG_GETREG32(cti_base + `APB_ROM_TABLE_BLOCK_PIDR1_OFFSET, temp_data);
         `uvm_info(tag, $sformatf("CTI @ %08h PIDR1 = %h", cti_base, temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'hBD) begin
             `uvm_error(tag, $sformatf("CTI PIDR1 = %h, expected xBD", temp_data))
             path_ok = 0;
         end
 
-        DBG_GETREG32(cti_base + 32'hFCC, temp_data);
+        DBG_GETREG32(cti_base + `APB_DEBUG_BLOCK_EDDEVTYPE_OFFSET, temp_data);
         `uvm_info(tag, $sformatf("CTI @ %08h DEVTYPE = %h", cti_base, temp_data), UVM_LOW)
         if (temp_data[7:0] != CTI_DEVTYPE[7:0]) begin
             `uvm_error(tag, $sformatf("CTI DEVTYPE = %h, expected x14", temp_data))
             path_ok = 0;
         end
 
-        DBG_GETREG32(cti_base + 32'hFBC, temp_data);
+        DBG_GETREG32(cti_base + `APB_ROM_TABLE_BLOCK_DEVARCH_OFFSET, temp_data);
         `uvm_info(tag, $sformatf("CTI @ %08h DEVARCH = %h (REVISION %h)",
                                  cti_base, temp_data, temp_data[19:16]), UVM_LOW)
         if ((temp_data & DEVARCH_ID_MASK) != (CTI_DEVARCH & DEVARCH_ID_MASK)) begin

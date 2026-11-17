@@ -1,0 +1,70 @@
+//----------------------------------------------------------------------
+// Offset macros copied from the generated designer headers:
+//   APB_ROM_TABLE_BLOCK.vh
+//   APB_DEBUG_BLOCK.vh
+//
+// Only register offsets are collected here.  Do not add local aliases
+// or field macros in this file.
+//----------------------------------------------------------------------
+
+`define APB_ROM_TABLE_BLOCK_ROMENTRY0_OFFSET  'h0
+`define APB_ROM_TABLE_BLOCK_ROMENTRY1_OFFSET  'h4
+`define APB_ROM_TABLE_BLOCK_ROMENTRY2_OFFSET  'h8
+`define APB_ROM_TABLE_BLOCK_ROMENTRY3_OFFSET  'hc
+`define APB_ROM_TABLE_BLOCK_AUTHSTATUS_OFFSET 'hfb8
+`define APB_ROM_TABLE_BLOCK_DEVARCH_OFFSET    'hfc
+`define APB_ROM_TABLE_BLOCK_PIDR4_OFFSET      'hfd0
+`define APB_ROM_TABLE_BLOCK_PIDR0_OFFSET      'hfe0
+`define APB_ROM_TABLE_BLOCK_PIDR1_OFFSET      'hfe4
+`define APB_ROM_TABLE_BLOCK_PIDR2_OFFSET      'hfe8
+`define APB_ROM_TABLE_BLOCK_PIDR3_OFFSET      'hfec
+`define APB_ROM_TABLE_BLOCK_CIDR0_OFFSET      'hff0
+`define APB_ROM_TABLE_BLOCK_CIDR1_OFFSET      'hff4
+`define APB_ROM_TABLE_BLOCK_CIDR2_OFFSET      'hff8
+`define APB_ROM_TABLE_BLOCK_CIDR3_OFFSET      'hffc
+
+`define APB_DEBUG_BLOCK_EDESR_OFFSET           'h20
+`define APB_DEBUG_BLOCK_EDECR_OFFSET           'h24
+`define APB_DEBUG_BLOCK_EDWAR_OFFSET           'h30
+`define APB_DEBUG_BLOCK_DBGDTRRX_EL0_OFFSET    'h80
+`define APB_DEBUG_BLOCK_EDSCR_OFFSET           'h88
+`define APB_DEBUG_BLOCK_DBGDTRTX_EL0_OFFSET    'h8c
+`define APB_DEBUG_BLOCK_EDRCR_OFFSET           'h90
+`define APB_DEBUG_BLOCK_EDACR_OFFSET           'h94
+`define APB_DEBUG_BLOCK_DECCR_OFFSET           'h98
+`define APB_DEBUG_BLOCK_OSLAR_EL1_OFFSET       'h300
+`define APB_DEBUG_BLOCK_EDPRCR_OFFSET          'h310
+`define APB_DEBUG_BLOCK_EDPRSR_OFFSET          'h314
+`define APB_DEBUG_BLOCK_DBGBCR0_EL1_OFFSET     'h408
+`define APB_DEBUG_BLOCK_DBGBCR1_EL1_OFFSET     'h418
+`define APB_DEBUG_BLOCK_DBGBCR2_EL1_OFFSET     'h428
+`define APB_DEBUG_BLOCK_DBGBCR3_EL1_OFFSET     'h438
+`define APB_DEBUG_BLOCK_DBGBCR4_EL1_OFFSET     'h448
+`define APB_DEBUG_BLOCK_DBGBCR5_EL1_OFFSET     'h458
+`define APB_DEBUG_BLOCK_DBGWCR0_EL1_OFFSET     'h800
+`define APB_DEBUG_BLOCK_DBGWCR1_EL1_OFFSET     'h818
+`define APB_DEBUG_BLOCK_DBGWCR2_EL1_OFFSET     'h828
+`define APB_DEBUG_BLOCK_DBGWCR3_EL1_OFFSET     'h838
+`define APB_DEBUG_BLOCK_MIDR_EL1_OFFSET        'hd00
+`define APB_DEBUG_BLOCK_EDPRR_OFFSET           'hd20
+`define APB_DEBUG_BLOCK_EDA32PFR_OFFSET        'hd28
+`define APB_DEBUG_BLOCK_DBGCLAIMSET_EL1_OFFSET 'hfa0
+`define APB_DEBUG_BLOCK_DBGCLAIMCLR_EL1_OFFSET 'hfa4
+`define APB_DEBUG_BLOCK_EDDEVAFF0_OFFSET       'hfa8
+`define APB_DEBUG_BLOCK_EDDEVAFF1_OFFSET       'hfac
+`define APB_DEBUG_BLOCK_EDLAR_OFFSET           'hfb0
+`define APB_DEBUG_BLOCK_EDAUTHSTATUS_OFFSET    'hfb8
+`define APB_DEBUG_BLOCK_EDDEVARCH_OFFSET       'hfbc
+`define APB_DEBUG_BLOCK_EDDEVID2_OFFSET        'hfc0
+`define APB_DEBUG_BLOCK_EDDEVID1_OFFSET        'hfc4
+`define APB_DEBUG_BLOCK_EDDEVID_OFFSET         'hfc8
+`define APB_DEBUG_BLOCK_EDDEVTYPE_OFFSET       'hfcc
+`define APB_DEBUG_BLOCK_EDPIDR4_OFFSET         'hfd0
+`define APB_DEBUG_BLOCK_EDPIDR0_OFFSET         'hfe0
+`define APB_DEBUG_BLOCK_EDPIDR1_OFFSET         'hfe4
+`define APB_DEBUG_BLOCK_EDPIDR2_OFFSET         'hfe8
+`define APB_DEBUG_BLOCK_EDPIDR3_OFFSET         'hfec
+`define APB_DEBUG_BLOCK_EDCIDR0_OFFSET         'hff0
+`define APB_DEBUG_BLOCK_EDCIDR1_OFFSET         'hff4
+`define APB_DEBUG_BLOCK_EDCIDR2_OFFSET         'hff8
+`define APB_DEBUG_BLOCK_EDCIDR3_OFFSET         'hffc

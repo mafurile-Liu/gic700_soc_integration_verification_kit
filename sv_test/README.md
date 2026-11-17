@@ -73,6 +73,7 @@ both PIDR and these architecture IDs.
 
 | file | what it does |
 | --- | --- |
+| apb_block_offset_macros.svh | designer-provided APB ROM table / debug block register offset macros |
 | cpu_debug_romtable_clst0_test.sv | full walk of clst0 ROM table + entry0 component |
 | cpu_debug_romtable_clst1_test.sv | same for clst1 |
 | cpu_debug_romtable_clst2_test.sv | same for clst2 |

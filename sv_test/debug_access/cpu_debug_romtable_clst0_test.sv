@@ -43,22 +43,22 @@ class cpu_debug_romtable_clst0_test extends cpu_debug_base_test;
         #0.5us;
 
         // ROM table CIDR signature
-        DBG_GETREG32(CLST_BASE + 32'hFF0, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_CIDR0_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("CIDR0 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'h0D)
             `uvm_error("clst0_romtable", $sformatf("CIDR0 = %h, expected x0D", temp_data))
 
-        DBG_GETREG32(CLST_BASE + 32'hFF4, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_CIDR1_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("CIDR1 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'h90)
             `uvm_error("clst0_romtable", $sformatf("CIDR1 = %h, expected x90", temp_data))
 
-        DBG_GETREG32(CLST_BASE + 32'hFF8, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_CIDR2_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("CIDR2 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'h05)
             `uvm_error("clst0_romtable", $sformatf("CIDR2 = %h, expected x05", temp_data))
 
-        DBG_GETREG32(CLST_BASE + 32'hFFC, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_CIDR3_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("CIDR3 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'hB1)
             `uvm_error("clst0_romtable", $sformatf("CIDR3 = %h, expected xB1", temp_data))
@@ -70,25 +70,25 @@ class cpu_debug_romtable_clst0_test extends cpu_debug_base_test;
         // The per-core ROM table in A720 TRM Table 17-2 differs
         // (PART 0xD81, PIDR 0x04200BBD81). REVISION / REVAND / CMOD /
         // SIZE are revision fields and are logged only.
-        DBG_GETREG32(CLST_BASE + 32'hFE0, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_PIDR0_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("PIDR0 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'hE9)
             `uvm_error("clst0_romtable", $sformatf("PIDR0 = %h, expected xE9 (PART_0)", temp_data))
 
-        DBG_GETREG32(CLST_BASE + 32'hFE4, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_PIDR1_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("PIDR1 = %h", temp_data), UVM_LOW)
         if (temp_data[7:0] != 8'hB4)
             `uvm_error("clst0_romtable", $sformatf("PIDR1 = %h, expected xB4 (DES_0=B PART_1=4)", temp_data))
 
-        DBG_GETREG32(CLST_BASE + 32'hFE8, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_PIDR2_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("PIDR2 = %h (REVISION %h)", temp_data, temp_data[7:4]), UVM_LOW)
         if (temp_data[7:0] != 8'h3B)
             `uvm_error("clst0_romtable", $sformatf("PIDR2[7:0] = %h, expected x3B (REVISION=3, JEDEC=1, DES_1=3)", temp_data[7:0]))
 
-        DBG_GETREG32(CLST_BASE + 32'hFEC, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_PIDR3_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("PIDR3 = %h (REVAND %h, CMOD %h)", temp_data, temp_data[7:4], temp_data[3:0]), UVM_LOW)
 
-        DBG_GETREG32(CLST_BASE + 32'hFD0, temp_data);
+        DBG_GETREG32(CLST_BASE + `APB_ROM_TABLE_BLOCK_PIDR4_OFFSET, temp_data);
         `uvm_info("clst0_romtable", $sformatf("PIDR4 = %h (SIZE %h)", temp_data, temp_data[7:4]), UVM_LOW)
         if (temp_data[3:0] != 4'h4)
             `uvm_error("clst0_romtable", $sformatf("PIDR4[3:0] = %h, expected h4 (DES_2)", temp_data[3:0]))
@@ -106,7 +106,7 @@ class cpu_debug_romtable_clst0_test extends cpu_debug_base_test;
         n_entry    = 0;
         entry0_val = 32'h0;
         for (int e = 0; e < 12; e++) begin
-            rd_data = CLST_BASE + e * 4;
+            rd_data = CLST_BASE + `APB_ROM_TABLE_BLOCK_ROMENTRY0_OFFSET + e * 4;
             DBG_GETREG32(rd_data, entry_val);
             if (entry_val == 32'h0) begin
                 `uvm_info("clst0_romtable", $sformatf("entry[%0d] = end marker", e), UVM_LOW)
@@ -129,19 +129,19 @@ class cpu_debug_romtable_clst0_test extends cpu_debug_base_test;
         end
         else begin
             comp_base = CLST_BASE + ({{12{entry0_val[31]}}, entry0_val[31:12]} << 12);
-            DBG_GETREG32(comp_base + 32'hFF0, rd_data);
+            DBG_GETREG32(comp_base + `APB_ROM_TABLE_BLOCK_CIDR0_OFFSET, rd_data);
             `uvm_info("clst0_romtable", $sformatf("comp 0x%08h CIDR0 = %h", comp_base, rd_data), UVM_LOW)
             if (rd_data[7:0] != 8'h0D)
                 `uvm_error("clst0_romtable", $sformatf("comp CIDR0 = %h, expected x0D", rd_data))
 
-            DBG_GETREG32(comp_base + 32'hFF4, rd_data);
+            DBG_GETREG32(comp_base + `APB_ROM_TABLE_BLOCK_CIDR1_OFFSET, rd_data);
             `uvm_info("clst0_romtable",
                       $sformatf("comp CIDR1 = %h (class %h, 1=romtable 9=coresight)",
                                 rd_data, rd_data[7:4]), UVM_LOW)
             if (rd_data[7:0] != 8'h90)
                 `uvm_error("clst0_romtable", $sformatf("comp CIDR1 = %h, expected x90", rd_data))
 
-            DBG_GETREG32(comp_base + 32'hFE0, rd_data);
+            DBG_GETREG32(comp_base + `APB_ROM_TABLE_BLOCK_PIDR0_OFFSET, rd_data);
             `uvm_info("clst0_romtable", $sformatf("comp PIDR0 = %h", rd_data), UVM_LOW)
         end
 
