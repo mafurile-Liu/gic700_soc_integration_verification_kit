@@ -30,9 +30,9 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
     localparam bit [31:0] CLUSTER_CTI_OFFSET  = 32'h0004_0000;
 
     // CoreSight ID and one safe DebugBlock RW register.
-    localparam bit [31:0] ROM_CIDR1           = 32'hFF4;
-    localparam bit [31:0] ED_MIDR_EL1         = 32'hD00;
-    localparam bit [31:0] ED_DEVTYPE          = 32'hFCC;
+    localparam bit [31:0] ROM_CIDR1           = `APB_ROM_TABLE_BLOCK_CIDR1_OFFSET;
+    localparam bit [31:0] ED_MIDR_EL1         = `APB_DEBUG_BLOCK_MIDR_EL1_OFFSET;
+    localparam bit [31:0] ED_DEVTYPE          = `APB_DEBUG_BLOCK_EDDEVTYPE_OFFSET;
     localparam bit [31:0] CTI_GATE            = 32'h140;
     localparam bit [31:0] CTI_DEVTYPE         = 32'hFCC;
 
@@ -158,7 +158,8 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
         // State-dependent status register: log only.  Its reset/state
         // fields can differ while the design-side scenario is active.
         read_reg("Core debug EDPRSR",
-                 cluster_base + CORE0_DEBUG_OFFSET + 32'h314, rd_data);
+                 cluster_base + CORE0_DEBUG_OFFSET +
+                 `APB_DEBUG_BLOCK_EDPRSR_OFFSET, rd_data);
 
         if (path_ok)
             `uvm_info(tag,
