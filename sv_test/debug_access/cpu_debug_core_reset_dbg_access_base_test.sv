@@ -25,7 +25,7 @@ class cpu_debug_core_reset_dbg_access_base_test extends cpu_debug_base_test;
 
     // CoreSight component IDs.
     localparam bit [31:0] CTI_GATE      = 32'h140;
-    localparam bit [31:0] CTI_DEVTYPE_OFFSET = `APB_DEBUG_BLOCK_EDDEVTYPE_OFFSET;
+    localparam bit [31:0] CTI_DEVTYPE_OFFSET = 32'hFCC;
 
     // DSU-120 r2p1 DebugBlock ROM table identity.
     localparam bit [31:0] DBROM_CIDR1   = `APB_ROM_TABLE_BLOCK_CIDR1_OFFSET;

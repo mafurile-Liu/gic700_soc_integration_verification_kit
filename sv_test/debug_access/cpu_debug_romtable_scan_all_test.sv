@@ -44,7 +44,7 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
             clst_base = CPU_TREE_BASE + c * CLST_STRIDE;
 
             // Exercise the high-address decode inside the cluster block.
-            DBG_GETREG32(clst_base + PE3_CTI_OFFSET + `APB_ROM_TABLE_BLOCK_PIDR0_OFFSET, rd_data);
+            DBG_GETREG32(clst_base + PE3_CTI_OFFSET + 32'hFE0, rd_data);
             `uvm_info("romtable_scan",
                       $sformatf("clst%0d PE3 CTI @ %08h PIDR0 = %h",
                                 c, clst_base + PE3_CTI_OFFSET, rd_data), UVM_LOW)
@@ -53,7 +53,7 @@ class cpu_debug_romtable_scan_all_test extends cpu_debug_base_test;
                            $sformatf("clst%0d PE3 CTI PIDR0 = %h, expected x81",
                                      c, rd_data))
 
-            DBG_GETREG32(clst_base + PE3_CTI_OFFSET + `APB_ROM_TABLE_BLOCK_PIDR1_OFFSET, rd_data);
+            DBG_GETREG32(clst_base + PE3_CTI_OFFSET + 32'hFE4, rd_data);
             `uvm_info("romtable_scan",
                       $sformatf("clst%0d PE3 CTI @ %08h PIDR1 = %h",
                                 c, clst_base + PE3_CTI_OFFSET, rd_data), UVM_LOW)
