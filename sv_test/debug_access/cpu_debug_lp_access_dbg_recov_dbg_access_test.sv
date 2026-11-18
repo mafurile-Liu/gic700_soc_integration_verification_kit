@@ -1,26 +1,18 @@
-`ifndef CPU_DEBUG_LP_ACCESS_BASE_TEST_SV
-`define CPU_DEBUG_LP_ACCESS_BASE_TEST_SV
+`ifndef CPU_DEBUG_LP_ACCESS_DBG_RECOV_DBG_ACCESS_TEST_SV
+`define CPU_DEBUG_LP_ACCESS_DBG_RECOV_DBG_ACCESS_TEST_SV
 
 //----------------------------------------------------------------------
-// Minimal debug-APB access while the design has placed a core or the
-// cluster in OFF_EMU/DBG_RECOV.
-//
-// The PPU/CRG state is controlled by the design-side scenario before
-// test_body() starts.  This test does not change the power state.
-//
-// DSU-120 TRM chapter 5 says:
-//   - Core OFF_EMU keeps debug registers accessible.
-//   - DBG_RECOV preserves cache/RAS state and applies a warm reset.
-//   - The DebugBlock has its own power domain; when it is off, APB
-//     accesses return PSLVERR.
+// Minimal debug-APB access while dsu_dbg_recov_dbg_access_test holds
+// the design in DBG_RECOV.
 //
 // Cache RAM contents are not accessed here.  A720/DSU cache debug is
 // exposed through core system registers (RAMINDEX/CLUSTERCDBG), not the
 // external debug APB interface.
 //----------------------------------------------------------------------
 
-class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
-    `uvm_component_utils(cpu_debug_lp_access_base_test)
+class cpu_debug_lp_access_dbg_recov_dbg_access_test
+    extends dsu_dbg_recov_dbg_access_test;
+    `uvm_component_utils(cpu_debug_lp_access_dbg_recov_dbg_access_test)
 
     localparam bit [31:0] CPU_TREE_BASE       = 32'h4B00_0000;
     localparam bit [31:0] CLST_STRIDE         = 32'h0028_0000;
@@ -29,10 +21,12 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
     localparam bit [31:0] CORE0_CTI_OFFSET    = 32'h000F_0000;
     localparam bit [31:0] CLUSTER_CTI_OFFSET  = 32'h0004_0000;
 
-    // CoreSight ID and one safe DebugBlock RW register.
     localparam bit [31:0] ROM_CIDR1           = `APB_ROM_TABLE_BLOCK_CIDR1_OFFSET;
     localparam bit [31:0] ED_MIDR_EL1         = `APB_DEBUG_BLOCK_MIDR_EL1_OFFSET;
     localparam bit [31:0] ED_DEVTYPE          = `APB_DEBUG_BLOCK_EDDEVTYPE_OFFSET;
+    localparam bit [31:0] ED_PRSR             = `APB_DEBUG_BLOCK_EDPRSR_OFFSET;
+
+    // CTI does not have designer offset macros yet.
     localparam bit [31:0] CTI_GATE            = 32'h140;
     localparam bit [31:0] CTI_DEVTYPE         = 32'hFCC;
 
@@ -41,24 +35,20 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
     localparam bit [31:0] ED_DEVTYPE_EXP      = 32'h0000_0015;
     localparam bit [31:0] CTI_DEVTYPE_EXP     = 32'h0000_0014;
 
+    bit [31:0] rd_data;
     bit [31:0] cluster_base;
     int        cluster_index;
-    string     state_name;
-    string     target_name;
     string     tag;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
         set_cluster_index(0);
-        state_name  = "OFF_EMU";
-        target_name = "core";
+        tag = "cpu_debug_lp_access_dbg_recov";
     endfunction
 
     virtual function void set_cluster_index(int idx);
         cluster_index = idx;
         cluster_base  = CPU_TREE_BASE + idx * CLST_STRIDE;
-        tag           = $sformatf("lp_%s_%s_clst%0d",
-                                  state_name.tolower(), target_name.tolower(), idx);
     endfunction
 
     protected task read_reg(string name,
@@ -97,7 +87,7 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
                                       name, value_read, value))
     endtask
 
-    protected virtual task run_low_power_access();
+    protected virtual task run_dbg_access();
         bit [31:0] cti_base;
         bit [31:0] gate_restore;
         bit        dbrom_ok;
@@ -111,17 +101,8 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
         cti_base = cluster_base + CORE0_CTI_OFFSET;
         path_ok  = 1;
 
-        `uvm_info(tag,
-                  $sformatf("begin %s target=%s access @ cluster %08h",
-                            state_name, target_name, cluster_base), UVM_LOW)
+        `uvm_info(tag, "begin DBG_RECOV debug APB access", UVM_LOW)
 
-        // The design-side scenario has already selected the PPU state.
-        // Only wait for the DebugBlock Q-Channel to accept power.
-        wait(cpu_vif.debug_pwr_qacceptn[cluster_index] == 1'b1);
-        #0.5us;
-
-        // Keep this small: prove the DebugBlock, cluster ROM, core debug
-        // component, and both CTIs are reachable through debug APB.
         check_reg("DBROM CIDR1", cluster_base + ROM_CIDR1,
                   32'h0000_00FF, DBROM_CIDR1_EXP, dbrom_ok);
         check_reg("Cluster ROM CIDR1",
@@ -158,18 +139,14 @@ class cpu_debug_lp_access_base_test extends cpu_debug_base_test;
         // State-dependent status register: log only.  Its reset/state
         // fields can differ while the design-side scenario is active.
         read_reg("Core debug EDPRSR",
-                 cluster_base + CORE0_DEBUG_OFFSET +
-                 `APB_DEBUG_BLOCK_EDPRSR_OFFSET, rd_data);
+                 cluster_base + CORE0_DEBUG_OFFSET + ED_PRSR, rd_data);
 
         if (path_ok)
-            `uvm_info(tag,
-                      $sformatf("%s target=%s debug APB access passed",
-                                state_name, target_name), UVM_LOW)
+            `uvm_info(tag, "DBG_RECOV debug APB access passed", UVM_LOW)
     endtask
 
-    virtual task test_body();
-        aw_seen = 1; // Debug-domain test; CPU main.cpp is not required.
-        run_low_power_access();
+    virtual task dbg_access_body();
+        run_dbg_access();
     endtask
 
 endclass

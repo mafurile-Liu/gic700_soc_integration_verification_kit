@@ -91,11 +91,8 @@ both PIDR and these architecture IDs.
 | cpu_debug_halt_resume_clst5_test.sv | halt and resume one A720 core in clst5 |
 | cpu_debug_core_reset_dbg_access_clst0_test.sv | access clst0 DebugBlock while its cores stay in reset |
 | cpu_debug_core_reset_dbg_access_scan_all_test.sv | access all DebugBlocks while cluster cores stay in reset |
-| cpu_debug_lp_access_base_test.sv | shared minimal debug APB sequence for low-power states |
-| cpu_debug_lp_access_off_emu_core_test.sv | OFF_EMU core state: minimal debug APB access |
-| cpu_debug_lp_access_off_emu_cluster_test.sv | OFF_EMU cluster state: minimal debug APB access |
-| cpu_debug_lp_access_dbg_recov_core_test.sv | DBG_RECOV core state: minimal debug APB access |
-| cpu_debug_lp_access_dbg_recov_cluster_test.sv | DBG_RECOV cluster state: minimal debug APB access |
+| cpu_debug_lp_access_off_emu_dbg_access_test.sv | extends dsu_off_emu_dbg_access_test |
+| cpu_debug_lp_access_dbg_recov_dbg_access_test.sv | extends dsu_dbg_recov_dbg_access_test |
 
 ## Usage
 
@@ -146,8 +143,15 @@ and confirm `DBGRSTRR.DBGRR`/`DBGRSTAR.DBGRA` are still high.
 
 The low-power debug APB tests assume the design-side scenario has already
 put the target core or cluster into OFF_EMU or DBG_RECOV before
-`test_body()` runs.  They do not program the PPU/CRG state.  They access
-the DebugBlock ROM, cluster ROM, core debug registers, and CTIs.  L1/L2
-and DSU cache RAM debug is intentionally not included: it is exposed
-through core system registers (`RAMINDEX`/`CLUSTERCDBG`), not the
-external debug APB interface.
+`off_emu_access_body()`/`dbg_access_body()` runs.  They do not program
+the PPU/CRG state.  They access the DebugBlock ROM, cluster ROM, core
+debug registers, and CTIs.  L1/L2 and DSU cache RAM debug is
+intentionally not included: it is exposed through core system registers
+(`RAMINDEX`/`CLUSTERCDBG`), not the external debug APB interface.
+
+Select the design-state variants with:
+
+```bash
++UVM_TESTNAME=cpu_debug_lp_access_off_emu_dbg_access_test
++UVM_TESTNAME=cpu_debug_lp_access_dbg_recov_dbg_access_test
+```

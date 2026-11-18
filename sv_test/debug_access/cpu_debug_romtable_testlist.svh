@@ -44,10 +44,7 @@
 `include "cpu_debug_halt_resume_clst4_test.sv"
 `include "cpu_debug_halt_resume_clst5_test.sv"
 
-`include "cpu_debug_lp_access_base_test.sv"
-`include "cpu_debug_lp_access_off_emu_core_test.sv"
-`include "cpu_debug_lp_access_off_emu_cluster_test.sv"
-`include "cpu_debug_lp_access_dbg_recov_core_test.sv"
-`include "cpu_debug_lp_access_dbg_recov_cluster_test.sv"
+`include "cpu_debug_lp_access_off_emu_dbg_access_test.sv"
+`include "cpu_debug_lp_access_dbg_recov_dbg_access_test.sv"
 
 `endif
